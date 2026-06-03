@@ -5,7 +5,7 @@ Dashboard operativo de control de calidad y auditoría de tareas pendientes para
 ## Stack
 
 - **Frontend/App:** Streamlit
-- **Datos:** Google Sheets (vía gspread)
+- **Datos:** Metabase (CSV público directo)
 - **Hosting:** Streamlit Community Cloud (gratuito)
 - **Acceso:** Restringido por email corporativo
 
@@ -18,17 +18,14 @@ rental_police/
 ├── .gitignore
 ├── README.md
 ├── .streamlit/
-│   ├── config.toml                 # Tema visual
-│   └── secrets.toml.example        # Template de credenciales (no subir secrets.toml)
+│   └── config.toml                 # Tema visual
 ├── sections/
 │   ├── ir_coaches.py               # Pestaña 1: IR & Coaches Team
 │   ├── rental_team.py              # Pestaña 2: Rental Team
 │   └── supply_team.py              # Pestaña 3: Supply Team
-├── utils/
-│   ├── data.py                     # Carga desde Google Sheets
-│   └── filters.py                  # Toda la lógica Pandas de filtrado
-└── data/
-    └── export.csv                  # (opcional) CSV local para desarrollo
+└── utils/
+    ├── data.py                     # Carga desde Metabase CSV
+    └── filters.py                  # Toda la lógica Pandas de filtrado
 ```
 
 ## Setup local
@@ -39,31 +36,31 @@ rental_police/
 pip install -r requirements.txt
 ```
 
-### 2. Configurar credenciales de Google Sheets
-
-1. Ir a [console.cloud.google.com](https://console.cloud.google.com)
-2. Crear proyecto → habilitar **Google Sheets API** y **Google Drive API**
-3. Crear **Service Account** → descargar JSON de credenciales
-4. Compartir tu Google Sheet con el email de la service account (como editor)
-5. Copiar `.streamlit/secrets.toml.example` → `.streamlit/secrets.toml`
-6. Completar con los valores del JSON descargado y el ID del spreadsheet
-
-### 3. Ejecutar localmente
+### 2. Ejecutar localmente
 
 ```bash
 streamlit run app.py
 ```
 
-> **Desarrollo sin credenciales:** colocá tu CSV en `data/export.csv` y la app lo usará como fallback automático.
+No se requieren credenciales ni configuración adicional. Los datos se cargan directamente desde la URL pública de Metabase.
 
 ## Despliegue en Streamlit Community Cloud
 
 1. Subir el proyecto a un repositorio GitHub (puede ser privado)
 2. Ir a [share.streamlit.io](https://share.streamlit.io) → conectar repo → seleccionar `app.py`
-3. En **Settings → Secrets**, pegar el contenido de tu `secrets.toml`
-4. En **Settings → Viewer authentication**, agregar los emails o dominio del equipo
+3. En **Settings → Viewer authentication**, agregar los emails o dominio del equipo
 
-La URL quedará disponible en `https://tu-app.streamlit.app`
+No es necesario configurar secrets. La URL quedará disponible en `https://tu-app.streamlit.app`
+
+## Fuente de datos
+
+Los datos se obtienen directamente desde Metabase vía CSV público, definido en `utils/data.py`:
+
+```python
+METABASE_URL = "https://metabase.prophero.com.au/public/question/e3c80ecb-a143-4fda-8f40-680d03ab4dac.csv"
+```
+
+El cache se refresca automáticamente cada 5 minutos. El botón **Refrescar datos** del sidebar fuerza una actualización inmediata.
 
 ## Lógica de datos
 
