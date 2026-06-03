@@ -101,23 +101,11 @@ tab1, tab2, tab3 = st.tabs([
     "📍 Supply Team",
 ])
 
-with st.expander("🔍 DEBUG — columnas del CSV (eliminar después)", expanded=False):
-    st.write(sorted(df.columns.tolist()))
-
 with tab1:
-    try:
-        ir_coaches.render(df, filters)
-    except Exception as e:
-        st.error(f"Error en Tab 1: {e}")
+    ir_coaches.render(df, filters)
 
 with tab2:
-    try:
-        rental_team.render(df, filters)
-    except Exception as e:
-        st.error(f"Error en Tab 2: {e}")
+    rental_team.render(df, filters)
 
 with tab3:
-    try:
-        supply_team.render(df, filters)
-    except Exception as e:
-        st.error(f"Error en Tab 3: {e}")
+    supply_team.render(df, filters)

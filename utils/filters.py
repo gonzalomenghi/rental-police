@@ -225,12 +225,14 @@ def section_subscription_formalisation(df: pd.DataFrame) -> pd.DataFrame:
 # ── Pestaña 3 — Sección 1: Missing Key Data (Supply) ──────────────────────────
 
 def section_supply_missing_key_data(df: pd.DataFrame) -> pd.DataFrame:
-    base = df[
-        (df["country"] == "Spain")
-        & (df["test_flag"].isna() | (df["test_flag"] != "Test"))
-        & (df["priority"].str.contains("High", na=False))
-        & (df["stage"].isin(["Pre-settlement", "Settled", "Property leased", "Vacant"]))
-    ].copy()
+    mask = df["stage"].isin(["Pre-settlement", "Settled", "Property leased", "Vacant"])
+    if "country" in df.columns:
+        mask &= df["country"] == "Spain"
+    if "test_flag" in df.columns:
+        mask &= df["test_flag"].isna() | (df["test_flag"] != "Test")
+    if "priority" in df.columns:
+        mask &= df["priority"].str.contains("High", na=False)
+    base = df[mask].copy()
 
     base["no_suburb"]  = is_empty(base["suburb_section_name"]).astype(int)
     base["no_cluster"] = is_empty(base["area_cluster"]).astype(int)
