@@ -15,6 +15,6 @@ HEADERS = {
 def load_data() -> pd.DataFrame:
     response = requests.get(METABASE_URL, headers=HEADERS, timeout=30)
     response.raise_for_status()
-    df = pd.read_csv(io.StringIO(response.text), dtype=str)
+    df = pd.read_csv(io.BytesIO(response.content), dtype=str, encoding="utf-8")
     df = df.replace({"": pd.NA, " ": pd.NA})
     return df
