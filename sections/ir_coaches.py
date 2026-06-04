@@ -1,30 +1,12 @@
 import streamlit as st
 import pandas as pd
+from utils.ui import kpi_row, show_detail, CRITICAL_RED, WARNING_ORANGE, OCEAN_BLUE
 from utils.filters import (
     section_pending_offers, section_pending_offers_detail,
     section_pm_plan_missing, section_pm_plan_missing_detail,
     section_home_insurance, section_home_insurance_detail,
     section_missing_client_info, section_missing_client_info_detail,
 )
-
-
-def _kpi_row(cols_data: list[tuple[str, int, str]]):
-    cols = st.columns(len(cols_data))
-    for col, (label, value, color) in zip(cols, cols_data):
-        with col:
-            st.markdown(
-                f"""<div style="background:#f5f5f5;border-radius:8px;padding:12px 16px;">
-                <div style="font-size:12px;color:#888;margin-bottom:4px">{label}</div>
-                <div style="font-size:24px;font-weight:500;color:{color}">{value}</div>
-                </div>""",
-                unsafe_allow_html=True,
-            )
-
-
-def _show_detail(detail: pd.DataFrame, label: str):
-    if not detail.empty:
-        st.caption(f"📋 Detalle — **{label}** ({len(detail)} registros)")
-        st.dataframe(detail, use_container_width=True, hide_index=True)
 
 
 def _make_pivot(result: pd.DataFrame, index_col: str, label_col: str) -> pd.DataFrame:
@@ -43,12 +25,12 @@ def _make_pivot(result: pd.DataFrame, index_col: str, label_col: str) -> pd.Data
     return pivot.sort_values("Total", ascending=False).reset_index(drop=True)
 
 
-def _drill_down(pivot: pd.DataFrame, owner_col: str, row_idx: int, detail_fn, df: pd.DataFrame, owner_kwarg: str, section_key: str):
-    """Muestra detalle para la fila seleccionada. Si hay múltiples tiers, muestra radio."""
-    owner = pivot.iloc[row_idx][owner_col]
+def _drill_down(pivot: pd.DataFrame, owner_col: str, row_idx: int,
+                detail_fn, df: pd.DataFrame, owner_kwarg: str, section_key: str):
+    """Show detail for the selected row; radio selector when multiple tiers have data."""
+    owner         = pivot.iloc[row_idx][owner_col]
     priority_cols = [c for c in pivot.columns if c not in (owner_col, "Total")]
-    # Solo tiers con datos en esa fila
-    available = [c for c in priority_cols if pivot.iloc[row_idx][c] > 0]
+    available     = [c for c in priority_cols if pivot.iloc[row_idx][c] > 0]
     if not available:
         return
     if len(available) == 1:
@@ -61,7 +43,7 @@ def _drill_down(pivot: pd.DataFrame, owner_col: str, row_idx: int, detail_fn, df
             key=f"{section_key}_{owner}",
         )
     detail = detail_fn(df, **{owner_kwarg: owner}, priority_tier=selected)
-    _show_detail(detail, f"{owner} — {selected}")
+    show_detail(detail, f"{owner} — {selected}")
 
 
 def render(df: pd.DataFrame, filters: dict):
@@ -92,12 +74,13 @@ def render(df: pd.DataFrame, filters: dict):
             pre_reno  = int(result[result["priority_tier"].str.contains("Media", na=False)]["alertas"].sum())
             n_users   = result["investor_relations_name"].nunique()
 
-            _kpi_row([
-                ("Total alertas",         total,     "#A32D2D"),
-                ("Post-Reno (alta)",      post_reno, "#A32D2D"),
-                ("Pre-Reno (media)",      pre_reno,  "#854F0B"),
-                ("IR usuarios afectados", n_users,   "#185FA5"),
+            kpi_row([
+                ("Total alertas",         total,     CRITICAL_RED,   True),
+                ("Post-Reno (alta) 🚩",   post_reno, CRITICAL_RED,   True),
+                ("Pre-Reno (media)",       pre_reno,  WARNING_ORANGE, False),
+                ("IR usuarios afectados",  n_users,   OCEAN_BLUE,     False),
             ])
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
             pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
@@ -123,12 +106,13 @@ def render(df: pd.DataFrame, filters: dict):
             pre_reno_pm  = int(result_pm[result_pm["priority_tier"].str.contains("Media", na=False)]["alertas"].sum())
             n_users_pm   = result_pm["investor_relations_name"].nunique()
 
-            _kpi_row([
-                ("Total alertas",         total_pm,     "#A32D2D"),
-                ("Post-Reno (alta)",      post_reno_pm, "#A32D2D"),
-                ("Pre-Reno (media)",      pre_reno_pm,  "#854F0B"),
-                ("IR usuarios afectados", n_users_pm,   "#185FA5"),
+            kpi_row([
+                ("Total alertas",         total_pm,     CRITICAL_RED,   True),
+                ("Post-Reno (alta) 🚩",   post_reno_pm, CRITICAL_RED,   True),
+                ("Pre-Reno (media)",       pre_reno_pm,  WARNING_ORANGE, False),
+                ("IR usuarios afectados",  n_users_pm,   OCEAN_BLUE,     False),
             ])
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
             pivot_pm = _make_pivot(result_pm, "investor_relations_name", "IR Name")
             event_pm = st.dataframe(
@@ -155,12 +139,12 @@ def render(df: pd.DataFrame, filters: dict):
             post_reno = int(result[result["priority_tier"].str.contains("Alta",  na=False)]["alertas"].sum())
             pre_reno  = int(result[result["priority_tier"].str.contains("Media", na=False)]["alertas"].sum())
 
-            _kpi_row([
-                ("Total alertas",    total,     "#A32D2D"),
-                ("Post-Reno (alta)", post_reno, "#A32D2D"),
-                ("Pre-Reno (media)", pre_reno,  "#854F0B"),
+            kpi_row([
+                ("Total alertas",      total,     CRITICAL_RED,   True),
+                ("Post-Reno (alta) 🚩", post_reno, CRITICAL_RED,   True),
+                ("Pre-Reno (media)",    pre_reno,  WARNING_ORANGE, False),
             ])
-            st.markdown("---")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
             pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
@@ -186,11 +170,11 @@ def render(df: pd.DataFrame, filters: dict):
             total   = int(result["alertas"].sum())
             n_coach = result["coach"].nunique()
 
-            _kpi_row([
-                ("Total alertas",     total,   "#A32D2D"),
-                ("Coaches afectados", n_coach, "#185FA5"),
+            kpi_row([
+                ("Total alertas",     total,   CRITICAL_RED, True),
+                ("Coaches afectados", n_coach, OCEAN_BLUE,   False),
             ])
-            st.markdown("---")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
             pivot = _make_pivot(result, "coach", "Coach")
             event = st.dataframe(

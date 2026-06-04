@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from utils.data import load_data
-from sections import ir_coaches, rental_team, supply_team
+from sections import ir_coaches, rental_team, supply_team, summary
 
 # ── Configuración de página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -12,14 +12,115 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── CSS mínimo para ajustar look ───────────────────────────────────────────────
+# ── Brand Design System CSS ────────────────────────────────────────────────────
+# Palette: Ocean Blue #009CDF | Space Blue #26204E | Sky Blue #A5D7FC | Sand #E8E2DC
+# Font: Manrope (Manrope Bold for H1/headers, Manrope Medium/Regular for body)
+# Layout concept: "Parcels" — clean card containers with 5-10% internal padding
 st.markdown(
     """
     <style>
-    [data-testid="stSidebar"] { background: #1a1a2e; }
-    [data-testid="stSidebar"] * { color: #f0f0f0 !important; }
-    [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] { background: #3a3a5c; }
-    div[data-testid="metric-container"] { background: #f5f5f5; border-radius: 8px; padding: 8px; }
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+
+    /* ── Global font ─────────────────────────────────────────────────────── */
+    html, body, [class*="css"], * {
+        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    /* ── Sidebar — Space Blue ─────────────────────────────────────────────── */
+    [data-testid="stSidebar"] {
+        background: #26204E !important;
+    }
+    [data-testid="stSidebar"] * {
+        color: #E8E2DC !important;
+    }
+    [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] {
+        background: #009CDF !important;
+        color: #FFFFFF !important;
+    }
+    [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] span {
+        color: #FFFFFF !important;
+    }
+    [data-testid="stSidebar"] hr {
+        border-color: #3d3660 !important;
+    }
+
+    /* Sidebar refresh button */
+    [data-testid="stSidebar"] button[kind="secondary"],
+    [data-testid="stSidebar"] .stButton > button {
+        background: #009CDF !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        width: 100%;
+    }
+
+    /* ── Tab navigation ───────────────────────────────────────────────────── */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        background: #F5F2EE;
+        padding: 5px 6px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        color: #26204E !important;
+        border-radius: 7px !important;
+        padding: 7px 16px !important;
+        border: none !important;
+        background: transparent !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: #26204E !important;
+        color: #FFFFFF !important;
+    }
+    .stTabs [data-baseweb="tab-highlight"] {
+        display: none !important;
+    }
+
+    /* ── Expander parcels ─────────────────────────────────────────────────── */
+    [data-testid="stExpander"] {
+        border: 1px solid #E8E2DC !important;
+        border-radius: 12px !important;
+        overflow: hidden;
+        margin-bottom: 14px !important;
+        box-shadow: 0 1px 4px rgba(38,32,78,0.07) !important;
+    }
+    [data-testid="stExpander"] > details > summary {
+        background: #F8F5F2 !important;
+        padding: 12px 16px !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        color: #26204E !important;
+    }
+    [data-testid="stExpander"] > details > summary:hover {
+        background: #EFE9E3 !important;
+    }
+
+    /* ── Success / info alerts ────────────────────────────────────────────── */
+    [data-testid="stAlert"] {
+        border-radius: 8px !important;
+    }
+
+    /* ── Remove default metric container style ────────────────────────────── */
+    div[data-testid="metric-container"] {
+        background: transparent !important;
+    }
+
+    /* ── Dataframe header cells ───────────────────────────────────────────── */
+    [data-testid="stDataFrame"] th {
+        background-color: #26204E !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+    }
+
+    /* ── Main container padding ───────────────────────────────────────────── */
+    .block-container {
+        padding-top: 1.5rem !important;
+        max-width: 1400px !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -28,31 +129,30 @@ st.markdown(
 # ── Carga de datos ─────────────────────────────────────────────────────────────
 df = load_data()
 
-# ── Sidebar — Header ───────────────────────────────────────────────────────────
+# ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🛡️ Rental Police")
-    st.markdown("*Quality control & audit dashboard*")
+    st.markdown(
+        f"""<div style="font-family:'Manrope',sans-serif;margin-bottom:4px">
+        <div style="font-size:20px;font-weight:700;color:#FFFFFF">🛡️ Rental Police</div>
+        <div style="font-size:12px;color:#A5D7FC;margin-top:2px">Quality control & audit dashboard</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
-
     st.markdown("### Filtros globales")
 
-    # IR Names
-    ir_options = sorted(df["investor_relations_name"].dropna().unique().tolist())
-    ir_filter  = st.multiselect("IR Name", ir_options, placeholder="Todos")
+    ir_options    = sorted(df["investor_relations_name"].dropna().unique().tolist())
+    ir_filter     = st.multiselect("IR Name", ir_options, placeholder="Todos")
 
-    # Coaches
     coach_options = sorted(df["coach"].dropna().unique().tolist())
     coach_filter  = st.multiselect("Coach", coach_options, placeholder="Todos")
 
-    # Rental Leads
-    rl_options = sorted(df["rental_lead"].dropna().unique().tolist())
-    rl_filter  = st.multiselect("Rental Lead", rl_options, placeholder="Todos")
+    rl_options    = sorted(df["rental_lead"].dropna().unique().tolist())
+    rl_filter     = st.multiselect("Rental Lead", rl_options, placeholder="Todos")
 
-    # Supply Leads
-    sl_options = sorted(df["supply_lead"].dropna().unique().tolist())
-    sl_filter  = st.multiselect("Supply Lead", sl_options, placeholder="Todos")
+    sl_options    = sorted(df["supply_lead"].dropna().unique().tolist())
+    sl_filter     = st.multiselect("Supply Lead", sl_options, placeholder="Todos")
 
-    # Prioridad
     st.markdown("---")
     st.markdown("### Prioridad")
     priority_filter = st.multiselect(
@@ -67,12 +167,12 @@ with st.sidebar:
         st.rerun()
 
     st.markdown(
-        f"<div style='font-size:11px;color:#888;margin-top:8px'>"
+        f"<div style='font-size:11px;color:#A5D7FC;margin-top:8px'>"
         f"{len(df):,} registros cargados</div>",
         unsafe_allow_html=True,
     )
 
-# ── Diccionario de filtros para pasar a cada pestaña ──────────────────────────
+# ── Filtros globales ───────────────────────────────────────────────────────────
 filters = {
     "ir_names":     ir_filter,
     "coaches":      coach_filter,
@@ -84,8 +184,13 @@ filters = {
 # ── Header principal ───────────────────────────────────────────────────────────
 col_title, col_meta = st.columns([3, 1])
 with col_title:
-    st.title("🛡️ Rental Police")
-    st.caption("Sistema de control de calidad y auditoría de tareas pendientes")
+    st.markdown(
+        f"""<div style="font-family:'Manrope',sans-serif;margin-bottom:4px">
+        <div style="font-size:28px;font-weight:700;color:#26204E">🛡️ Rental Police</div>
+        <div style="font-size:13px;color:#666">Sistema de control de calidad y auditoría de tareas pendientes</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 with col_meta:
     active = sum([
         bool(ir_filter), bool(coach_filter),
@@ -94,12 +199,18 @@ with col_meta:
     if active:
         st.info(f"{active} filtro(s) activo(s)")
 
+st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
 # ── Pestañas principales ───────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs([
+tab0, tab1, tab2, tab3 = st.tabs([
+    "📊 Dashboard",
     "👥 IR & Coaches Team",
     "🏪 Rental Team",
     "📍 Supply Team",
 ])
+
+with tab0:
+    summary.render(df, filters)
 
 with tab1:
     ir_coaches.render(df, filters)

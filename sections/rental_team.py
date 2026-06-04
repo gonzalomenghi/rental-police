@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from utils.ui import kpi_row, show_detail, CRITICAL_RED, WARNING_ORANGE, OCEAN_BLUE
 from utils.filters import (
     is_empty,
     section_unassigned_pm,
@@ -9,31 +10,10 @@ from utils.filters import (
 )
 
 
-def _kpi_row(cols_data: list[tuple[str, int, str]]):
-    cols = st.columns(len(cols_data))
-    for col, (label, value, color) in zip(cols, cols_data):
-        with col:
-            st.markdown(
-                f"""<div style="background:#f5f5f5;border-radius:8px;padding:12px 16px;">
-                <div style="font-size:12px;color:#888;margin-bottom:4px">{label}</div>
-                <div style="font-size:24px;font-weight:500;color:{color}">{value}</div>
-                </div>""",
-                unsafe_allow_html=True,
-            )
-
-
-def _show_detail(detail: pd.DataFrame, label: str):
-    if not detail.empty:
-        st.caption(f"📋 Detalle — **{label}** ({len(detail)} registros)")
-        st.dataframe(detail, use_container_width=True, hide_index=True)
-
-
 def render(df: pd.DataFrame, filters: dict):
-    # Filtro de sidebar
     if filters.get("rental_leads"):
         df = df[df["rental_lead"].isin(filters["rental_leads"])]
 
-    # Solo transacciones con rental_lead asignado
     df = df[~is_empty(df["rental_lead"])]
 
     # ════════════════════════════════════════════════════════════════════════
@@ -51,12 +31,12 @@ def render(df: pd.DataFrame, filters: dict):
             settled = int((result["stage"].str.lower() == "settled").sum())
             leased  = int((result["stage"].str.lower() == "property leased").sum())
 
-            _kpi_row([
-                ("Sin PM asignado",        len(result), "#A32D2D"),
-                ("Stage: Settled",         settled,     "#854F0B"),
-                ("Stage: Property leased", leased,      "#854F0B"),
+            kpi_row([
+                ("🚩 Sin PM asignado",      len(result), CRITICAL_RED,   True),
+                ("Stage: Settled",          settled,     WARNING_ORANGE, False),
+                ("Stage: Property leased",  leased,      WARNING_ORANGE, False),
             ])
-            st.markdown("---")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
             st.dataframe(result, use_container_width=True, hide_index=True)
 
     # ════════════════════════════════════════════════════════════════════════
@@ -75,12 +55,12 @@ def render(df: pd.DataFrame, filters: dict):
             miss_ready = int(result["Pending - Ready Date"].sum())
             miss_delay = int(result["Pending - Delay reason"].sum())
 
-            _kpi_row([
-                ("Pending real ready date", miss_real,  "#A32D2D"),
-                ("Pending ready date",      miss_ready, "#854F0B"),
-                ("Pending delay reason",    miss_delay, "#854F0B"),
+            kpi_row([
+                ("Pending real ready date", miss_real,  CRITICAL_RED,   True),
+                ("Pending ready date",       miss_ready, WARNING_ORANGE, False),
+                ("Pending delay reason",     miss_delay, WARNING_ORANGE, False),
             ])
-            st.markdown("---")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
             GAP_COLS = ["Pending - Real Ready Date", "Pending - Ready Date", "Pending - Delay reason"]
             event = st.dataframe(
@@ -101,7 +81,7 @@ def render(df: pd.DataFrame, filters: dict):
                         key=f"gap_{rental_lead}",
                     )
                 detail = section_ready_to_rent_gaps_detail(df, rental_lead=rental_lead, gap_type=gap_type)
-                _show_detail(detail, f"{rental_lead} — {gap_type}")
+                show_detail(detail, f"{rental_lead} — {gap_type}")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 3 — Missing Lease & Subscription Info
@@ -117,15 +97,18 @@ def render(df: pd.DataFrame, filters: dict):
         if lease_result.empty:
             st.success("Sin alertas activas.")
         else:
-            _kpi_row([("Total alertas sub-A", int(lease_result["count"].sum()), "#A32D2D")])
+            kpi_row([
+                ("Total alertas sub-A", int(lease_result["count"].sum()), CRITICAL_RED, True),
+            ])
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
             event = st.dataframe(
                 lease_result, use_container_width=True, hide_index=True,
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                row = lease_result.iloc[event.selection.rows[0]]
+                row    = lease_result.iloc[event.selection.rows[0]]
                 detail = section_missing_lease_detail(df, stage=row["stage"], rental_lead=row["rental_lead"])
-                _show_detail(detail, f"{row['stage']} / {row['rental_lead']}")
+                show_detail(detail, f"{row['stage']} / {row['rental_lead']}")
 
         st.markdown("---")
 
@@ -135,12 +118,15 @@ def render(df: pd.DataFrame, filters: dict):
         if sub_result.empty:
             st.success("Sin alertas activas.")
         else:
-            _kpi_row([("Total alertas sub-B", int(sub_result["count"].sum()), "#A32D2D")])
+            kpi_row([
+                ("Total alertas sub-B", int(sub_result["count"].sum()), CRITICAL_RED, True),
+            ])
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
             event = st.dataframe(
                 sub_result, use_container_width=True, hide_index=True,
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                row = sub_result.iloc[event.selection.rows[0]]
+                row    = sub_result.iloc[event.selection.rows[0]]
                 detail = section_subscription_formalisation_detail(df, stage=row["stage"], rental_lead=row["rental_lead"])
-                _show_detail(detail, f"{row['stage']} / {row['rental_lead']}")
+                show_detail(detail, f"{row['stage']} / {row['rental_lead']}")
