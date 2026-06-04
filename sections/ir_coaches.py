@@ -42,6 +42,27 @@ def _make_pivot(result: pd.DataFrame, index_col: str, label_col: str) -> pd.Data
     return pivot.sort_values("Total", ascending=False).reset_index(drop=True)
 
 
+def _drill_down(pivot: pd.DataFrame, owner_col: str, row_idx: int, detail_fn, df: pd.DataFrame, owner_kwarg: str, section_key: str):
+    """Muestra detalle para la fila seleccionada. Si hay múltiples tiers, muestra radio."""
+    owner = pivot.iloc[row_idx][owner_col]
+    priority_cols = [c for c in pivot.columns if c not in (owner_col, "Total")]
+    # Solo tiers con datos en esa fila
+    available = [c for c in priority_cols if pivot.iloc[row_idx][c] > 0]
+    if not available:
+        return
+    if len(available) == 1:
+        selected = available[0]
+    else:
+        selected = st.radio(
+            "Seleccionar prioridad:",
+            available,
+            horizontal=True,
+            key=f"{section_key}_{owner}",
+        )
+    detail = detail_fn(df, **{owner_kwarg: owner}, priority_tier=selected)
+    _show_detail(detail, f"{owner} — {selected}")
+
+
 def render(df: pd.DataFrame, filters: dict):
     if filters.get("ir_names"):
         df = df[df["investor_relations_name"].isin(filters["ir_names"])]
@@ -80,16 +101,11 @@ def render(df: pd.DataFrame, filters: dict):
             pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
                 pivot, use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-cell",
+                on_select="rerun", selection_mode="single-row",
             )
-            sel = event.selection
-            if sel.rows and sel.columns and sel.columns[0] not in ("IR Name", "Total"):
-                ir_name  = pivot.iloc[sel.rows[0]]["IR Name"]
-                priority = sel.columns[0]
-                _show_detail(
-                    section_pending_offers_detail(df, ir_name=ir_name, priority_tier=priority),
-                    f"{ir_name} — {priority}",
-                )
+            if event.selection.rows:
+                _drill_down(pivot, "IR Name", event.selection.rows[0],
+                            section_pending_offers_detail, df, "ir_name", "sec1")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 2 — Home Insurance Tracking
@@ -117,16 +133,11 @@ def render(df: pd.DataFrame, filters: dict):
             pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
                 pivot, use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-cell",
+                on_select="rerun", selection_mode="single-row",
             )
-            sel = event.selection
-            if sel.rows and sel.columns and sel.columns[0] not in ("IR Name", "Total"):
-                ir_name  = pivot.iloc[sel.rows[0]]["IR Name"]
-                priority = sel.columns[0]
-                _show_detail(
-                    section_home_insurance_detail(df, ir_name=ir_name, priority_tier=priority),
-                    f"{ir_name} — {priority}",
-                )
+            if event.selection.rows:
+                _drill_down(pivot, "IR Name", event.selection.rows[0],
+                            section_home_insurance_detail, df, "ir_name", "sec2")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 3 — Missing Client's Info
@@ -152,13 +163,8 @@ def render(df: pd.DataFrame, filters: dict):
             pivot = _make_pivot(result, "coach", "Coach")
             event = st.dataframe(
                 pivot, use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-cell",
+                on_select="rerun", selection_mode="single-row",
             )
-            sel = event.selection
-            if sel.rows and sel.columns and sel.columns[0] not in ("Coach", "Total"):
-                coach    = pivot.iloc[sel.rows[0]]["Coach"]
-                priority = sel.columns[0]
-                _show_detail(
-                    section_missing_client_info_detail(df, coach=coach, priority_tier=priority),
-                    f"{coach} — {priority}",
-                )
+            if event.selection.rows:
+                _drill_down(pivot, "Coach", event.selection.rows[0],
+                            section_missing_client_info_detail, df, "coach", "sec3")
