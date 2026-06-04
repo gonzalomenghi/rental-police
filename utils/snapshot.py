@@ -35,7 +35,9 @@ def load_snapshots() -> dict:
 def build_kpis(df: pd.DataFrame) -> dict:
     """
     Calculate all KPI totals from the full (unfiltered) dataset.
-    Returns a flat dict of {kpi_key: int}.
+    Mirrors the pre-filters each tab applies before calling section functions:
+    - Rental functions: pre-filtered to rows with an assigned rental_lead
+      (same as rental_team.render() does unconditionally)
     """
     from utils.filters import (
         section_pending_offers, section_pm_plan_missing,
@@ -43,32 +45,36 @@ def build_kpis(df: pd.DataFrame) -> dict:
         section_unassigned_pm, section_ready_to_rent_gaps,
         section_missing_lease, section_subscription_formalisation,
         section_supply_missing_key_data, section_already_tenanted,
+        is_empty,
     )
 
-    def _s(fn, col):
+    # Rental Team tab always filters out rows without a rental_lead
+    df_rental = df[~is_empty(df["rental_lead"])].copy()
+
+    def _s(fn, df_arg, col):
         try:
-            r = fn(df)
+            r = fn(df_arg)
             return int(r[col].sum()) if not r.empty else 0
         except Exception:
             return 0
 
-    def _n(fn):
+    def _n(fn, df_arg):
         try:
-            return int(len(fn(df)))
+            return int(len(fn(df_arg)))
         except Exception:
             return 0
 
     return {
-        "ir_pending_offers":    _s(section_pending_offers,              "alertas"),
-        "ir_pm_plan_missing":   _s(section_pm_plan_missing,             "alertas"),
-        "ir_home_insurance":    _s(section_home_insurance,              "alertas"),
-        "ir_missing_client":    _s(section_missing_client_info,         "alertas"),
-        "rental_unassigned_pm": _n(section_unassigned_pm),
-        "rental_ready_to_rent": _s(section_ready_to_rent_gaps,          "Total"),
-        "rental_missing_lease": _s(section_missing_lease,               "count"),
-        "rental_sub_formal":    _s(section_subscription_formalisation,  "count"),
-        "supply_missing_kd":    _s(section_supply_missing_key_data,     "Totals_to_be_reviewed"),
-        "supply_tenanted":      _s(section_already_tenanted,            "count"),
+        "ir_pending_offers":    _s(section_pending_offers,              df,        "alertas"),
+        "ir_pm_plan_missing":   _s(section_pm_plan_missing,             df,        "alertas"),
+        "ir_home_insurance":    _s(section_home_insurance,              df,        "alertas"),
+        "ir_missing_client":    _s(section_missing_client_info,         df,        "alertas"),
+        "rental_unassigned_pm": _n(section_unassigned_pm,               df_rental),
+        "rental_ready_to_rent": _s(section_ready_to_rent_gaps,          df_rental, "Total"),
+        "rental_missing_lease": _s(section_missing_lease,               df_rental, "count"),
+        "rental_sub_formal":    _s(section_subscription_formalisation,  df_rental, "count"),
+        "supply_missing_kd":    _s(section_supply_missing_key_data,     df,        "Totals_to_be_reviewed"),
+        "supply_tenanted":      _s(section_already_tenanted,            df,        "count"),
     }
 
 

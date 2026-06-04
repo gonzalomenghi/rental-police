@@ -14,113 +14,70 @@ st.set_page_config(
 
 # ── Brand Design System CSS ────────────────────────────────────────────────────
 # Palette: Ocean Blue #009CDF | Space Blue #26204E | Sky Blue #A5D7FC | Sand #E8E2DC
-# Font: Manrope (Manrope Bold for H1/headers, Manrope Medium/Regular for body)
-# Layout concept: "Parcels" — clean card containers with 5-10% internal padding
+# Font: Manrope — applied via body (inherits to content); NOT via * !important
+# which would break Streamlit's Material Icons (expander arrows, etc.).
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
-    /* ── Global font ─────────────────────────────────────────────────────── */
-    html, body, [class*="css"], * {
-        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    }
+    /* ── Base font via inheritance — does NOT override icon fonts ─────────── */
+    body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; }
 
     /* ── Sidebar — Space Blue ─────────────────────────────────────────────── */
-    [data-testid="stSidebar"] {
-        background: #26204E !important;
-    }
-    [data-testid="stSidebar"] * {
-        color: #E8E2DC !important;
-    }
+    [data-testid="stSidebar"] { background: #26204E !important; }
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] .stMarkdown,
+    [data-testid="stSidebar"] .stMarkdown * { color: #E8E2DC !important; }
     [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] {
-        background: #009CDF !important;
-        color: #FFFFFF !important;
+        background: #009CDF !important; color: #FFFFFF !important;
     }
     [data-testid="stSidebar"] .stMultiSelect [data-baseweb="tag"] span {
         color: #FFFFFF !important;
     }
-    [data-testid="stSidebar"] hr {
-        border-color: #3d3660 !important;
-    }
-
-    /* Sidebar refresh button */
-    [data-testid="stSidebar"] button[kind="secondary"],
+    [data-testid="stSidebar"] hr { border-color: #3d3660 !important; }
     [data-testid="stSidebar"] .stButton > button {
-        background: #009CDF !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        width: 100%;
+        background: #009CDF !important; color: #FFFFFF !important;
+        border: none !important; border-radius: 8px !important;
+        font-weight: 600 !important; width: 100%;
     }
 
     /* ── Tab navigation ───────────────────────────────────────────────────── */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 4px;
-        background: #F5F2EE;
-        padding: 5px 6px;
-        border-radius: 10px;
-        margin-bottom: 8px;
+        gap: 4px; background: #F5F2EE;
+        padding: 5px 6px; border-radius: 10px; margin-bottom: 8px;
     }
     .stTabs [data-baseweb="tab"] {
-        font-weight: 600 !important;
-        font-size: 14px !important;
-        color: #26204E !important;
-        border-radius: 7px !important;
-        padding: 7px 16px !important;
-        border: none !important;
+        font-weight: 600 !important; font-size: 14px !important;
+        color: #26204E !important; border-radius: 7px !important;
+        padding: 7px 16px !important; border: none !important;
         background: transparent !important;
     }
     .stTabs [aria-selected="true"] {
-        background: #26204E !important;
-        color: #FFFFFF !important;
+        background: #26204E !important; color: #FFFFFF !important;
     }
-    .stTabs [data-baseweb="tab-highlight"] {
-        display: none !important;
-    }
+    .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
 
     /* ── Expander parcels ─────────────────────────────────────────────────── */
     [data-testid="stExpander"] {
-        border: 1px solid #E8E2DC !important;
-        border-radius: 12px !important;
-        overflow: hidden;
-        margin-bottom: 14px !important;
+        border: 1px solid #E8E2DC !important; border-radius: 12px !important;
+        overflow: hidden; margin-bottom: 14px !important;
         box-shadow: 0 1px 4px rgba(38,32,78,0.07) !important;
     }
     [data-testid="stExpander"] > details > summary {
-        background: #F8F5F2 !important;
-        padding: 12px 16px !important;
-        font-weight: 700 !important;
-        font-size: 15px !important;
+        background: #F8F5F2 !important; padding: 12px 16px !important;
+        font-weight: 700 !important; font-size: 15px !important;
         color: #26204E !important;
     }
     [data-testid="stExpander"] > details > summary:hover {
         background: #EFE9E3 !important;
     }
 
-    /* ── Success / info alerts ────────────────────────────────────────────── */
-    [data-testid="stAlert"] {
-        border-radius: 8px !important;
-    }
-
-    /* ── Remove default metric container style ────────────────────────────── */
-    div[data-testid="metric-container"] {
-        background: transparent !important;
-    }
-
-    /* ── Dataframe header cells ───────────────────────────────────────────── */
-    [data-testid="stDataFrame"] th {
-        background-color: #26204E !important;
-        color: #FFFFFF !important;
-        font-weight: 600 !important;
-    }
-
-    /* ── Main container padding ───────────────────────────────────────────── */
-    .block-container {
-        padding-top: 1.5rem !important;
-        max-width: 1400px !important;
-    }
+    /* ── Misc ─────────────────────────────────────────────────────────────── */
+    [data-testid="stAlert"] { border-radius: 8px !important; }
+    div[data-testid="metric-container"] { background: transparent !important; }
+    .block-container { padding-top: 1.5rem !important; max-width: 1400px !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -131,12 +88,11 @@ df = load_data()
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(
-        f"""<div style="font-family:'Manrope',sans-serif;margin-bottom:4px">
-        <div style="font-size:20px;font-weight:700;color:#FFFFFF">🛡️ Rental Police</div>
-        <div style="font-size:12px;color:#A5D7FC;margin-top:2px">Quality control & audit dashboard</div>
-        </div>""",
-        unsafe_allow_html=True,
+    st.html(
+        '<div style="font-family:\'Manrope\',sans-serif;margin-bottom:4px">'
+        '<div style="font-size:20px;font-weight:700;color:#FFFFFF">🛡️ Rental Police</div>'
+        '<div style="font-size:12px;color:#A5D7FC;margin-top:2px">Quality control &amp; audit dashboard</div>'
+        '</div>'
     )
     st.markdown("---")
     st.markdown("### Filtros globales")
@@ -166,10 +122,9 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-    st.markdown(
-        f"<div style='font-size:11px;color:#A5D7FC;margin-top:8px'>"
-        f"{len(df):,} registros cargados</div>",
-        unsafe_allow_html=True,
+    st.html(
+        f'<div style="font-size:11px;color:#A5D7FC;margin-top:8px">'
+        f'{len(df):,} registros cargados</div>'
     )
 
 # ── Filtros globales ───────────────────────────────────────────────────────────
@@ -184,12 +139,12 @@ filters = {
 # ── Header principal ───────────────────────────────────────────────────────────
 col_title, col_meta = st.columns([3, 1])
 with col_title:
-    st.markdown(
-        f"""<div style="font-family:'Manrope',sans-serif;margin-bottom:4px">
-        <div style="font-size:28px;font-weight:700;color:#26204E">🛡️ Rental Police</div>
-        <div style="font-size:13px;color:#666">Sistema de control de calidad y auditoría de tareas pendientes</div>
-        </div>""",
-        unsafe_allow_html=True,
+    st.html(
+        '<div style="font-family:\'Manrope\',sans-serif;margin-bottom:4px">'
+        '<div style="font-size:28px;font-weight:700;color:#26204E">🛡️ Rental Police</div>'
+        '<div style="font-size:13px;color:#666">'
+        'Sistema de control de calidad y auditoría de tareas pendientes</div>'
+        '</div>'
     )
 with col_meta:
     active = sum([
@@ -198,8 +153,6 @@ with col_meta:
     ])
     if active:
         st.info(f"{active} filtro(s) activo(s)")
-
-st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
 # ── Pestañas principales ───────────────────────────────────────────────────────
 tab0, tab1, tab2, tab3 = st.tabs([

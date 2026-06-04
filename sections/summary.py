@@ -36,10 +36,7 @@ def _bar_chart(sections_data: dict, bar_colors: list) -> go.Figure:
         plot_bgcolor="white",
         paper_bgcolor="white",
         margin=dict(t=30, b=120, l=10, r=10),
-        xaxis=dict(
-            tickfont=dict(family="Manrope", size=11),
-            tickangle=-35,
-        ),
+        xaxis=dict(tickfont=dict(family="Manrope", size=11), tickangle=-35),
         yaxis=dict(gridcolor="#EDEBE8", zeroline=False, title=""),
         showlegend=False,
         height=300,
@@ -90,9 +87,7 @@ def _trend_chart(trend_df: pd.DataFrame) -> go.Figure:
             continue
         y = trend_df[avail].sum(axis=1)
         fig.add_trace(go.Scatter(
-            x=trend_df["week"],
-            y=y,
-            name=name,
+            x=trend_df["week"], y=y, name=name,
             mode="lines+markers",
             line=dict(color=color, width=2.5),
             marker=dict(size=7),
@@ -100,8 +95,7 @@ def _trend_chart(trend_df: pd.DataFrame) -> go.Figure:
         ))
     fig.update_layout(
         font=dict(family="Manrope"),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
+        plot_bgcolor="white", paper_bgcolor="white",
         margin=dict(t=10, b=20, l=10, r=10),
         legend=dict(
             font=dict(family="Manrope", size=12),
@@ -145,15 +139,14 @@ def _mini_card(label: str, value: int, key: str, critical: bool, deltas: dict) -
 
 
 def _area_col(header_color: str, icon: str, title: str, items: list, deltas: dict):
-    st.markdown(
+    st.html(
         f'<div style="background:{header_color};border-radius:10px;padding:12px 16px;'
         f'font-family:\'Manrope\',sans-serif;margin-bottom:10px;">'
         f'<div style="font-size:15px;font-weight:700;color:#FFFFFF">{icon} {title}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+        f'</div>'
     )
     for label, val, key, crit in items:
-        st.markdown(_mini_card(label, val, key, crit, deltas), unsafe_allow_html=True)
+        st.html(_mini_card(label, val, key, crit, deltas))
 
 
 # ── Main render ────────────────────────────────────────────────────────────────
@@ -185,7 +178,7 @@ def render(df: pd.DataFrame, _filters: dict):
 
     # ── Header banner ─────────────────────────────────────────────────────────
     wk = week_key()
-    st.markdown(
+    st.html(
         f'<div style="background:linear-gradient(135deg,{SPACE_BLUE} 0%,{OCEAN_BLUE} 100%);'
         f'border-radius:14px;padding:24px 32px;margin-bottom:20px;font-family:\'Manrope\',sans-serif;">'
         f'<div style="font-size:22px;font-weight:700;color:#FFFFFF;margin-bottom:4px">'
@@ -193,8 +186,7 @@ def render(df: pd.DataFrame, _filters: dict):
         f'<div style="font-size:13px;color:{SKY_BLUE};font-weight:500">'
         f'{wk} &nbsp;·&nbsp; {len(df):,} registros cargados &nbsp;·&nbsp; '
         f'Vista global sin filtros de equipo aplicados</div>'
-        f'</div>',
-        unsafe_allow_html=True,
+        f'</div>'
     )
 
     # ── Top KPI row ───────────────────────────────────────────────────────────
@@ -205,7 +197,7 @@ def render(df: pd.DataFrame, _filters: dict):
         ("📍 Supply Team",           supply_total, _SUPPLY_COLOR,  False, supply_delta),
     ])
 
-    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    st.html("<div style='height:20px'></div>")
 
     # ── Charts ────────────────────────────────────────────────────────────────
     bar_colors = [
@@ -233,57 +225,41 @@ def render(df: pd.DataFrame, _filters: dict):
 
     col_bar, col_donut = st.columns([3, 2])
     with col_bar:
-        st.markdown(
-            f'<p style="font-size:13px;font-weight:700;color:{SPACE_BLUE};'
-            f'font-family:Manrope;margin-bottom:0">Alertas por sección</p>',
-            unsafe_allow_html=True,
-        )
+        st.html(f'<p style="font-size:13px;font-weight:700;color:{SPACE_BLUE};font-family:Manrope;margin:0">Alertas por sección</p>')
         st.plotly_chart(
             _bar_chart(sections_data, bar_colors),
-            use_container_width=True,
-            config={"displayModeBar": False},
+            use_container_width=True, config={"displayModeBar": False},
         )
     with col_donut:
-        st.markdown(
-            f'<p style="font-size:13px;font-weight:700;color:{SPACE_BLUE};'
-            f'font-family:Manrope;margin-bottom:0">Distribución por área</p>',
-            unsafe_allow_html=True,
-        )
+        st.html(f'<p style="font-size:13px;font-weight:700;color:{SPACE_BLUE};font-family:Manrope;margin:0">Distribución por área</p>')
         st.plotly_chart(
             _donut_chart(area_totals),
-            use_container_width=True,
-            config={"displayModeBar": False},
+            use_container_width=True, config={"displayModeBar": False},
         )
 
     # ── WoW trend chart ───────────────────────────────────────────────────────
     trend_df = get_trend_data()
     if len(trend_df) > 1:
-        st.markdown(
-            f'<p style="font-size:13px;font-weight:700;color:{SPACE_BLUE};'
-            f'font-family:Manrope;margin-bottom:0;margin-top:4px">Evolución semanal (Week over Week)</p>',
-            unsafe_allow_html=True,
-        )
+        st.html(f'<p style="font-size:13px;font-weight:700;color:{SPACE_BLUE};font-family:Manrope;margin:4px 0 0 0">Evolución semanal (Week over Week)</p>')
         st.plotly_chart(
             _trend_chart(trend_df),
-            use_container_width=True,
-            config={"displayModeBar": False},
+            use_container_width=True, config={"displayModeBar": False},
         )
     else:
-        st.markdown(
+        st.html(
             f'<div style="background:{SAND};border-radius:10px;padding:14px 18px;'
             f'font-family:\'Manrope\',sans-serif;color:{SPACE_BLUE};font-size:13px;margin-top:4px">'
             f'📈 El gráfico de evolución semanal aparecerá cuando se acumulen datos de al menos 2 semanas. '
-            f'Los datos de <b>{wk}</b> ya están guardados.</div>',
-            unsafe_allow_html=True,
+            f'Los datos de <b>{wk}</b> ya están guardados.</div>'
         )
 
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    st.html("<div style='height:16px'></div>")
 
     # ── Per-area breakdown ────────────────────────────────────────────────────
     col_ir, col_rental, col_supply = st.columns(3)
 
     with col_ir:
-        _area_col(_IR_COLOR, "👥", "IR & Coaches", [
+        _area_col(_IR_COLOR, "👥", "IR &amp; Coaches", [
             ("📄 Pending Sub. Offers",  kpis["ir_pending_offers"],  "ir_pending_offers",  True),
             ("📋 PM Selected Plan",     kpis["ir_pm_plan_missing"], "ir_pm_plan_missing", True),
             ("🛡️ Home Insurance",      kpis["ir_home_insurance"],  "ir_home_insurance",  False),
