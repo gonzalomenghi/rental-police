@@ -184,21 +184,43 @@ def section_unassigned_pm(df: pd.DataFrame) -> pd.DataFrame:
 
 # ── Pestaña 2 — Sección 2: Ready-to-Rent Data Gaps ────────────────────────────
 
-def section_ready_to_rent_gaps(df: pd.DataFrame) -> pd.DataFrame:
+def _ready_to_rent_base(df: pd.DataFrame) -> pd.DataFrame:
     status_ok = df["set_up_status"].isin([
         "Tenant found (pending to formalize documentation)",
         "Published",
         "Ready to rent",
     ])
     stage_ok = df["stage"].isin(["Settled", "Property leased", "Vacant"])
-    base = df[status_ok & stage_ok].copy()
-
+    lead_ok  = ~is_empty(df["rental_lead"])
+    base = df[status_ok & stage_ok & lead_ok].copy()
     base["miss_real_ready"] = is_empty(base["real_property_ready_date"]).astype(int)
     base["miss_ready"]      = is_empty(base["property_ready_date"]).astype(int)
     base["miss_delay"]      = is_empty(base["ready_delay_reason"]).astype(int)
     base["total_missing"]   = base[["miss_real_ready", "miss_ready", "miss_delay"]].sum(axis=1)
-
     return base[base["total_missing"] > 0].copy()
+
+
+def section_ready_to_rent_gaps(df: pd.DataFrame) -> pd.DataFrame:
+    base = _ready_to_rent_base(df)
+    grouped = (
+        base.groupby("rental_lead")[["miss_real_ready", "miss_ready", "miss_delay"]]
+        .sum()
+        .rename(columns={
+            "miss_real_ready": "Pending - Real Ready Date",
+            "miss_ready":      "Pending - Ready Date",
+            "miss_delay":      "Pending - Delay reason",
+        })
+        .reset_index()
+    )
+    grouped["Total"] = grouped[["Pending - Real Ready Date", "Pending - Ready Date", "Pending - Delay reason"]].sum(axis=1)
+    return grouped[grouped["Total"] > 0].sort_values("Total", ascending=False).reset_index(drop=True)
+
+
+def section_ready_to_rent_gaps_detail(df: pd.DataFrame, rental_lead=None) -> pd.DataFrame:
+    base = _ready_to_rent_base(df)
+    if rental_lead:
+        base = base[base["rental_lead"] == rental_lead]
+    return _pick_detail(base)
 
 
 # ── Pestaña 2 — Sección 3A: Missing Lease ─────────────────────────────────────

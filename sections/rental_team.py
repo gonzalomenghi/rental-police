@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 from utils.filters import (
+    is_empty,
     section_unassigned_pm,
-    section_ready_to_rent_gaps,
+    section_ready_to_rent_gaps, section_ready_to_rent_gaps_detail,
     section_missing_lease, section_missing_lease_detail,
     section_subscription_formalisation, section_subscription_formalisation_detail,
 )
@@ -28,8 +29,12 @@ def _show_detail(detail: pd.DataFrame, label: str):
 
 
 def render(df: pd.DataFrame, filters: dict):
+    # Filtro de sidebar
     if filters.get("rental_leads"):
         df = df[df["rental_lead"].isin(filters["rental_leads"])]
+
+    # Solo transacciones con rental_lead asignado
+    df = df[~is_empty(df["rental_lead"])]
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 1 — Unassigned Property Managers
@@ -59,16 +64,16 @@ def render(df: pd.DataFrame, filters: dict):
     # ════════════════════════════════════════════════════════════════════════
     with st.expander("📅 Ready-to-Rent Data Gaps", expanded=True):
         st.caption(
-            "Fechas clave faltantes en propiedades Published / Ready to rent / Tenant found."
+            "Fechas clave faltantes en propiedades Published / Ready to rent / Tenant found, agrupadas por Rental Lead."
         )
         result = section_ready_to_rent_gaps(df)
 
         if result.empty:
             st.success("Sin alertas activas.")
         else:
-            miss_real  = int(result["miss_real_ready"].sum())
-            miss_ready = int(result["miss_ready"].sum())
-            miss_delay = int(result["miss_delay"].sum())
+            miss_real  = int(result["Pending - Real Ready Date"].sum())
+            miss_ready = int(result["Pending - Ready Date"].sum())
+            miss_delay = int(result["Pending - Delay reason"].sum())
 
             _kpi_row([
                 ("Pending real ready date", miss_real,  "#A32D2D"),
@@ -77,12 +82,14 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            display_cols = [
-                "uniqueid", "stage", "set_up_status",
-                "miss_real_ready", "miss_ready", "miss_delay", "total_missing",
-            ]
-            available = [c for c in display_cols if c in result.columns]
-            st.dataframe(result[available], use_container_width=True, hide_index=True)
+            event = st.dataframe(
+                result, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-row",
+            )
+            if event.selection.rows:
+                rental_lead = result.iloc[event.selection.rows[0]]["rental_lead"]
+                detail = section_ready_to_rent_gaps_detail(df, rental_lead=rental_lead)
+                _show_detail(detail, rental_lead)
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 3 — Missing Lease & Subscription Info
