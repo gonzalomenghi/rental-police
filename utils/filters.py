@@ -54,6 +54,14 @@ SUB_FORMALISATION_PLANS = [
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+DETAIL_COLS = ["uniqueid", "transaction_name", "address"]
+
+
+def _pick_detail(df: pd.DataFrame) -> pd.DataFrame:
+    cols = [c for c in DETAIL_COLS if c in df.columns]
+    return df[cols].drop_duplicates().reset_index(drop=True)
+
+
 def is_empty(series: pd.Series) -> pd.Series:
     """True donde el valor es NaN o string vacío/solo espacios."""
     return series.isna() | (series.astype(str).str.strip() == "")
@@ -299,3 +307,125 @@ def section_already_tenanted(df: pd.DataFrame) -> pd.DataFrame:
         .sort_values(["count", "supply_lead"], ascending=[False, True])
         .reset_index()
     )
+
+
+# ── Funciones de detalle (drill-down por fila) ─────────────────────────────────
+
+def section_pending_offers_detail(df: pd.DataFrame, ir_name=None, priority_tier=None) -> pd.DataFrame:
+    base = add_priority_tier(base_filter_ir(df))
+    alert = base[is_empty(base["subscription_plan_offer"]) | is_empty(base["pm_selected_plan"])]
+    if ir_name:
+        alert = alert[alert["investor_relations_name"] == ir_name]
+    if priority_tier:
+        alert = alert[alert["priority_tier"] == priority_tier]
+    return _pick_detail(alert)
+
+
+def section_home_insurance_detail(df: pd.DataFrame, ir_name=None, priority_tier=None) -> pd.DataFrame:
+    base = add_priority_tier(base_filter_ir(df))
+    base = base[
+        base["stage"].isin(["Settled", "Vacant"])
+        | base["engagement_stage"].isin(["Settled"])
+    ]
+    cond = (
+        is_empty(base["home_insurance_offer"])
+        | is_empty(base["home_insurance_choice"])
+        | ((base["home_insurance_choice"] == "PropHero") & is_empty(base["home_insurance_type"]))
+    )
+    alert = base[cond]
+    if ir_name:
+        alert = alert[alert["investor_relations_name"] == ir_name]
+    if priority_tier:
+        alert = alert[alert["priority_tier"] == priority_tier]
+    return _pick_detail(alert)
+
+
+def section_missing_client_info_detail(df: pd.DataFrame, coach=None, priority_tier=None) -> pd.DataFrame:
+    plan_ok   = df["pm_selected_plan"].isin(SUB_PLANS)
+    stage_ok  = (
+        df["stage"].isin(["Settled", "Vacant", "Property leased"])
+        | df["engagement_stage"].str.contains("Settled", na=False, case=False)
+    )
+    status_ok = df["set_up_status"].isin(POST_RENO_STATUSES + PRE_RENO_STATUSES)
+    type_ok   = ~df["engagement_type"].isin(EXCLUDED_ENGAGEMENT_TYPES)
+    base = add_priority_tier(df[plan_ok & stage_ok & status_ok & type_ok].copy())
+    cond = (
+        is_empty(base["client_full_name"])
+        | is_empty(base["client_email"])
+        | is_empty(base["tech_bank_ownership_proof_urls"])
+        | is_empty(base["tech_id_copy_urls"])
+    )
+    alert = base[cond]
+    if coach:
+        alert = alert[alert["coach"] == coach]
+    if priority_tier:
+        alert = alert[alert["priority_tier"] == priority_tier]
+    return _pick_detail(alert)
+
+
+def section_missing_lease_detail(df: pd.DataFrame, stage=None, rental_lead=None) -> pd.DataFrame:
+    plan_ok   = ~df["pm_selected_plan"].isin(LEASE_EXCLUDED_PLANS) | is_empty(df["pm_selected_plan"])
+    status_ok = df["set_up_status"] == "Tenant found (pending to formalize documentation)"
+    stage_ok  = df["stage"].isin(["Settled", "Property leased", "Vacant"])
+    cond_miss = (
+        is_empty(df["actual_rent"])
+        | is_empty(df["lease_date"])
+        | is_empty(df["rent_contract_date"])
+    )
+    alert = df[plan_ok & status_ok & stage_ok & cond_miss].copy()
+    if stage:
+        alert = alert[alert["stage"] == stage]
+    if rental_lead:
+        alert = alert[alert["rental_lead"] == rental_lead]
+    return _pick_detail(alert)
+
+
+def section_subscription_formalisation_detail(df: pd.DataFrame, stage=None, rental_lead=None) -> pd.DataFrame:
+    plan_ok   = df["pm_selected_plan"].isin(SUB_FORMALISATION_PLANS)
+    status_ok = df["set_up_status"] == "Tenant found (pending to formalize documentation)"
+    stage_ok  = df["stage"].isin(["Settled", "Property leased", "Vacant"])
+    cond_miss = (
+        (~df["subscription_plan_offer"].str.contains("Accepted", na=True))
+        | is_empty(df["rent_insurance"])
+        | is_empty(df["actual_rent"])
+        | is_empty(df["rent_insurance_choice"])
+    )
+    alert = df[plan_ok & status_ok & stage_ok & cond_miss].copy()
+    if stage:
+        alert = alert[alert["stage"] == stage]
+    if rental_lead:
+        alert = alert[alert["rental_lead"] == rental_lead]
+    return _pick_detail(alert)
+
+
+def section_supply_missing_key_data_detail(df: pd.DataFrame, supply_lead=None) -> pd.DataFrame:
+    mask = df["stage"].isin(["Pre-settlement", "Settled", "Property leased", "Vacant"])
+    if "country" in df.columns:
+        mask &= df["country"] == "Spain"
+    if "test_flag" in df.columns:
+        mask &= df["test_flag"].isna() | (df["test_flag"] != "Test")
+    if "priority" in df.columns:
+        mask &= df["priority"].str.contains("High", na=False)
+    base = df[mask].copy()
+    alert = base[is_empty(base["suburb_section_name"]) | is_empty(base["area_cluster"])]
+    if supply_lead:
+        alert = alert[alert["supply_lead"] == supply_lead]
+    return _pick_detail(alert)
+
+
+def section_already_tenanted_detail(df: pd.DataFrame, supply_lead=None) -> pd.DataFrame:
+    def not_ready(series: pd.Series) -> pd.Series:
+        return ~series.str.contains("✅ Ready", na=False)
+
+    base = df[
+        (df["already_tenanted"] == "Yes")
+        & (pd.to_datetime(df["contract_date"], errors="coerce") > pd.Timestamp("2025-01-01"))
+    ].copy()
+    alert = base[
+        not_ready(base["supply_already_tenanted_tenant"])
+        | not_ready(base["supply_already_tenanted_rental"])
+        | not_ready(base["supply_already_tenanted_insurance"])
+    ]
+    if supply_lead:
+        alert = alert[alert["supply_lead"] == supply_lead]
+    return _pick_detail(alert)

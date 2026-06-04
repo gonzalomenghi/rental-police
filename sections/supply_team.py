@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from utils.filters import (
-    section_supply_missing_key_data,
-    section_already_tenanted,
+    section_supply_missing_key_data, section_supply_missing_key_data_detail,
+    section_already_tenanted, section_already_tenanted_detail,
     is_empty,
 )
 
@@ -20,9 +20,13 @@ def _kpi_row(cols_data: list[tuple[str, int, str]]):
             )
 
 
-def render(df: pd.DataFrame, filters: dict):
-    """Renderiza la pestaña Supply Team."""
+def _show_detail(detail: pd.DataFrame, label: str):
+    if not detail.empty:
+        st.caption(f"📋 Detalle — **{label}** ({len(detail)} registros)")
+        st.dataframe(detail, use_container_width=True, hide_index=True)
 
+
+def render(df: pd.DataFrame, filters: dict):
     if filters.get("supply_leads"):
         df = df[df["supply_lead"].isin(filters["supply_leads"])]
 
@@ -35,7 +39,6 @@ def render(df: pd.DataFrame, filters: dict):
         )
         result = section_supply_missing_key_data(df)
 
-        # KPI: propiedades sin supply_lead
         no_lead = int(is_empty(df["supply_lead"]).sum())
 
         if result.empty:
@@ -46,12 +49,19 @@ def render(df: pd.DataFrame, filters: dict):
             total_cluster = int(result["Unitsw_no_area_cluster"].sum())
 
             _kpi_row([
-                ("Sin supply_lead",      no_lead,       "#A32D2D"),
-                ("Sin suburb section",   total_suburb,  "#854F0B"),
-                ("Sin area cluster",     total_cluster, "#854F0B"),
+                ("Sin supply_lead",    no_lead,       "#A32D2D"),
+                ("Sin suburb section", total_suburb,  "#854F0B"),
+                ("Sin area cluster",   total_cluster, "#854F0B"),
             ])
             st.markdown("---")
-            st.dataframe(result, use_container_width=True, hide_index=True)
+
+            event = st.dataframe(
+                result, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-row",
+            )
+            if event.selection.rows:
+                supply_lead = result.iloc[event.selection.rows[0]]["supply_lead"]
+                _show_detail(section_supply_missing_key_data_detail(df, supply_lead=supply_lead), supply_lead)
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 2 — Already Tenanted Properties
@@ -71,10 +81,17 @@ def render(df: pd.DataFrame, filters: dict):
             miss_insurance = int(result["missing_insurance"].sum())
 
             _kpi_row([
-                ("Total alertas",        total,          "#A32D2D"),
-                ("Missing tenant info",  miss_tenant,    "#854F0B"),
-                ("Missing rental docs",  miss_rental,    "#854F0B"),
-                ("Missing insurance",    miss_insurance, "#854F0B"),
+                ("Total alertas",       total,          "#A32D2D"),
+                ("Missing tenant info", miss_tenant,    "#854F0B"),
+                ("Missing rental docs", miss_rental,    "#854F0B"),
+                ("Missing insurance",   miss_insurance, "#854F0B"),
             ])
             st.markdown("---")
-            st.dataframe(result, use_container_width=True, hide_index=True)
+
+            event = st.dataframe(
+                result, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-row",
+            )
+            if event.selection.rows:
+                supply_lead = result.iloc[event.selection.rows[0]]["supply_lead"]
+                _show_detail(section_already_tenanted_detail(df, supply_lead=supply_lead), supply_lead)

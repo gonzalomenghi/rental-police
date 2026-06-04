@@ -3,8 +3,8 @@ import pandas as pd
 from utils.filters import (
     section_unassigned_pm,
     section_ready_to_rent_gaps,
-    section_missing_lease,
-    section_subscription_formalisation,
+    section_missing_lease, section_missing_lease_detail,
+    section_subscription_formalisation, section_subscription_formalisation_detail,
 )
 
 
@@ -21,9 +21,13 @@ def _kpi_row(cols_data: list[tuple[str, int, str]]):
             )
 
 
-def render(df: pd.DataFrame, filters: dict):
-    """Renderiza la pestaña Rental Team."""
+def _show_detail(detail: pd.DataFrame, label: str):
+    if not detail.empty:
+        st.caption(f"📋 Detalle — **{label}** ({len(detail)} registros)")
+        st.dataframe(detail, use_container_width=True, hide_index=True)
 
+
+def render(df: pd.DataFrame, filters: dict):
     if filters.get("rental_leads"):
         df = df[df["rental_lead"].isin(filters["rental_leads"])]
 
@@ -39,13 +43,13 @@ def render(df: pd.DataFrame, filters: dict):
         if result.empty:
             st.success("Sin alertas activas.")
         else:
-            settled  = int((result["stage"].str.lower() == "settled").sum())
-            leased   = int((result["stage"].str.lower() == "property leased").sum())
+            settled = int((result["stage"].str.lower() == "settled").sum())
+            leased  = int((result["stage"].str.lower() == "property leased").sum())
 
             _kpi_row([
-                ("Sin PM asignado",      len(result), "#A32D2D"),
-                ("Stage: Settled",       settled,     "#854F0B"),
-                ("Stage: Property leased", leased,    "#854F0B"),
+                ("Sin PM asignado",        len(result), "#A32D2D"),
+                ("Stage: Settled",         settled,     "#854F0B"),
+                ("Stage: Property leased", leased,      "#854F0B"),
             ])
             st.markdown("---")
             st.dataframe(result, use_container_width=True, hide_index=True)
@@ -90,20 +94,34 @@ def render(df: pd.DataFrame, filters: dict):
 
         # Sub-bloque A
         st.markdown("**Sub-A — Missing Lease**")
-        lease_result = section_missing_lease(df)
+        lease_result = section_missing_lease(df).reset_index(drop=True)
         if lease_result.empty:
             st.success("Sin alertas activas.")
         else:
             _kpi_row([("Total alertas sub-A", int(lease_result["count"].sum()), "#A32D2D")])
-            st.dataframe(lease_result, use_container_width=True, hide_index=True)
+            event = st.dataframe(
+                lease_result, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-row",
+            )
+            if event.selection.rows:
+                row = lease_result.iloc[event.selection.rows[0]]
+                detail = section_missing_lease_detail(df, stage=row["stage"], rental_lead=row["rental_lead"])
+                _show_detail(detail, f"{row['stage']} / {row['rental_lead']}")
 
         st.markdown("---")
 
         # Sub-bloque B
         st.markdown("**Sub-B — Subscription Plan Formalisation**")
-        sub_result = section_subscription_formalisation(df)
+        sub_result = section_subscription_formalisation(df).reset_index(drop=True)
         if sub_result.empty:
             st.success("Sin alertas activas.")
         else:
             _kpi_row([("Total alertas sub-B", int(sub_result["count"].sum()), "#A32D2D")])
-            st.dataframe(sub_result, use_container_width=True, hide_index=True)
+            event = st.dataframe(
+                sub_result, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-row",
+            )
+            if event.selection.rows:
+                row = sub_result.iloc[event.selection.rows[0]]
+                detail = section_subscription_formalisation_detail(df, stage=row["stage"], rental_lead=row["rental_lead"])
+                _show_detail(detail, f"{row['stage']} / {row['rental_lead']}")
