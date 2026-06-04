@@ -195,8 +195,11 @@ def _ready_to_rent_base(df: pd.DataFrame) -> pd.DataFrame:
     base = df[status_ok & stage_ok & lead_ok].copy()
     base["miss_real_ready"] = is_empty(base["real_property_ready_date"]).astype(int)
     base["miss_ready"]      = is_empty(base["property_ready_date"]).astype(int)
-    base["miss_delay"]      = is_empty(base["ready_delay_reason"]).astype(int)
-    base["total_missing"]   = base[["miss_real_ready", "miss_ready", "miss_delay"]].sum(axis=1)
+    # Delay reason solo se contabiliza cuando real_ready_date > property_ready_date
+    real_dt  = pd.to_datetime(base["real_property_ready_date"], errors="coerce")
+    prop_dt  = pd.to_datetime(base["property_ready_date"], errors="coerce")
+    base["miss_delay"] = (is_empty(base["ready_delay_reason"]) & (real_dt > prop_dt)).astype(int)
+    base["total_missing"] = base[["miss_real_ready", "miss_ready", "miss_delay"]].sum(axis=1)
     return base[base["total_missing"] > 0].copy()
 
 
@@ -216,10 +219,16 @@ def section_ready_to_rent_gaps(df: pd.DataFrame) -> pd.DataFrame:
     return grouped[grouped["Total"] > 0].sort_values("Total", ascending=False).reset_index(drop=True)
 
 
-def section_ready_to_rent_gaps_detail(df: pd.DataFrame, rental_lead=None) -> pd.DataFrame:
+def section_ready_to_rent_gaps_detail(df: pd.DataFrame, rental_lead=None, gap_type=None) -> pd.DataFrame:
     base = _ready_to_rent_base(df)
     if rental_lead:
         base = base[base["rental_lead"] == rental_lead]
+    if gap_type == "Pending - Real Ready Date":
+        base = base[base["miss_real_ready"] > 0]
+    elif gap_type == "Pending - Ready Date":
+        base = base[base["miss_ready"] > 0]
+    elif gap_type == "Pending - Delay reason":
+        base = base[base["miss_delay"] > 0]
     return _pick_detail(base)
 
 
@@ -236,10 +245,10 @@ def section_missing_lease(df: pd.DataFrame) -> pd.DataFrame:
     )
     result = df[plan_ok & status_ok & stage_ok & cond_miss]
     return (
-        result.groupby(["stage", "rental_lead"])
+        result.groupby(["rental_lead", "stage"])
         .size()
         .reset_index(name="count")
-        .sort_values(["count", "stage", "rental_lead"], ascending=[False, True, True])
+        .sort_values(["count", "rental_lead", "stage"], ascending=[False, True, True])
     )
 
 
@@ -257,10 +266,10 @@ def section_subscription_formalisation(df: pd.DataFrame) -> pd.DataFrame:
     )
     result = df[plan_ok & status_ok & stage_ok & cond_miss]
     return (
-        result.groupby(["stage", "rental_lead"])
+        result.groupby(["rental_lead", "stage"])
         .size()
         .reset_index(name="count")
-        .sort_values(["count", "stage", "rental_lead"], ascending=[False, True, True])
+        .sort_values(["count", "rental_lead", "stage"], ascending=[False, True, True])
     )
 
 

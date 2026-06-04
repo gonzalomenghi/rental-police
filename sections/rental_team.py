@@ -82,14 +82,26 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
+            GAP_COLS = ["Pending - Real Ready Date", "Pending - Ready Date", "Pending - Delay reason"]
             event = st.dataframe(
                 result, use_container_width=True, hide_index=True,
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                rental_lead = result.iloc[event.selection.rows[0]]["rental_lead"]
-                detail = section_ready_to_rent_gaps_detail(df, rental_lead=rental_lead)
-                _show_detail(detail, rental_lead)
+                row         = result.iloc[event.selection.rows[0]]
+                rental_lead = row["rental_lead"]
+                available   = [c for c in GAP_COLS if row[c] > 0]
+                if len(available) == 1:
+                    gap_type = available[0]
+                else:
+                    gap_type = st.radio(
+                        "Tipo de dato faltante:",
+                        available,
+                        horizontal=True,
+                        key=f"gap_{rental_lead}",
+                    )
+                detail = section_ready_to_rent_gaps_detail(df, rental_lead=rental_lead, gap_type=gap_type)
+                _show_detail(detail, f"{rental_lead} — {gap_type}")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 3 — Missing Lease & Subscription Info
