@@ -20,6 +20,7 @@ POST_RENO_STATUSES = [
     "Published",
     "Ready to sell",
     "Ready to rent",
+    "Ready to publish",
     "On Hold",
     "Final check post utilities",
 ]
@@ -47,6 +48,7 @@ SUB_FORMALISATION_PLANS = [
     "Subscription - Premium",
     "Subscription - Basic",
     "Subscription - Basic + Insurance",
+    "Subscription - Premium + Insurance"
 ]
 
 
