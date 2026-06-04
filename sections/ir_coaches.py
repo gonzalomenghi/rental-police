@@ -61,27 +61,20 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            pivot = (
-                result.pivot_table(
-                    index="investor_relations_name",
-                    columns="priority_tier",
-                    values="alertas",
-                    aggfunc="sum",
-                    fill_value=0,
-                )
-                .reset_index()
-                .rename(columns={"investor_relations_name": "IR Name"})
+            table = (
+                result
+                .rename(columns={"investor_relations_name": "IR Name", "priority_tier": "Prioridad", "alertas": "Alertas"})
+                .sort_values(["Alertas", "IR Name"], ascending=[False, True])
+                .reset_index(drop=True)
             )
-            pivot["Total"] = pivot.select_dtypes("number").sum(axis=1)
-            pivot = pivot.sort_values("Total", ascending=False).reset_index(drop=True)
-
             event = st.dataframe(
-                pivot, use_container_width=True, hide_index=True,
+                table, use_container_width=True, hide_index=True,
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                ir_name = pivot.iloc[event.selection.rows[0]]["IR Name"]
-                _show_detail(section_pending_offers_detail(df, ir_name=ir_name), ir_name)
+                row = table.iloc[event.selection.rows[0]]
+                detail = section_pending_offers_detail(df, ir_name=row["IR Name"], priority_tier=row["Prioridad"])
+                _show_detail(detail, f"{row['IR Name']} — {row['Prioridad']}")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 2 — Home Insurance Tracking
@@ -106,27 +99,20 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            pivot = (
-                result.pivot_table(
-                    index="investor_relations_name",
-                    columns="priority_tier",
-                    values="alertas",
-                    aggfunc="sum",
-                    fill_value=0,
-                )
-                .reset_index()
-                .rename(columns={"investor_relations_name": "IR Name"})
+            table = (
+                result
+                .rename(columns={"investor_relations_name": "IR Name", "priority_tier": "Prioridad", "alertas": "Alertas"})
+                .sort_values(["Alertas", "IR Name"], ascending=[False, True])
+                .reset_index(drop=True)
             )
-            pivot["Total"] = pivot.select_dtypes("number").sum(axis=1)
-            pivot = pivot.sort_values("Total", ascending=False).reset_index(drop=True)
-
             event = st.dataframe(
-                pivot, use_container_width=True, hide_index=True,
+                table, use_container_width=True, hide_index=True,
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                ir_name = pivot.iloc[event.selection.rows[0]]["IR Name"]
-                _show_detail(section_home_insurance_detail(df, ir_name=ir_name), ir_name)
+                row = table.iloc[event.selection.rows[0]]
+                detail = section_home_insurance_detail(df, ir_name=row["IR Name"], priority_tier=row["Prioridad"])
+                _show_detail(detail, f"{row['IR Name']} — {row['Prioridad']}")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 3 — Missing Client's Info
@@ -149,23 +135,17 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            pivot = (
-                result.pivot_table(
-                    index="coach",
-                    columns="priority_tier",
-                    values="alertas",
-                    aggfunc="sum",
-                    fill_value=0,
-                )
-                .reset_index()
+            table = (
+                result
+                .rename(columns={"priority_tier": "Prioridad", "alertas": "Alertas"})
+                .sort_values(["Alertas", "coach"], ascending=[False, True])
+                .reset_index(drop=True)
             )
-            pivot["Total"] = pivot.select_dtypes("number").sum(axis=1)
-            pivot = pivot.sort_values("Total", ascending=False).reset_index(drop=True)
-
             event = st.dataframe(
-                pivot, use_container_width=True, hide_index=True,
+                table, use_container_width=True, hide_index=True,
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                coach = pivot.iloc[event.selection.rows[0]]["coach"]
-                _show_detail(section_missing_client_info_detail(df, coach=coach), coach)
+                row = table.iloc[event.selection.rows[0]]
+                detail = section_missing_client_info_detail(df, coach=row["coach"], priority_tier=row["Prioridad"])
+                _show_detail(detail, f"{row['coach']} — {row['Prioridad']}")
