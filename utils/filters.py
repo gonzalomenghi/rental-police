@@ -96,10 +96,28 @@ def base_filter_ir(df: pd.DataFrame) -> pd.DataFrame:
 # ── Pestaña 1 — Sección 1: Pending Subscription Offers ────────────────────────
 
 def section_pending_offers(df: pd.DataFrame) -> pd.DataFrame:
-    base = add_priority_tier(base_filter_ir(df))
-    alert = base[
-        is_empty(base["subscription_plan_offer"]) | is_empty(base["pm_selected_plan"])
-    ]
+    base  = add_priority_tier(base_filter_ir(df))
+    alert = base[is_empty(base["subscription_plan_offer"])]
+    return (
+        alert.groupby(["investor_relations_name", "priority_tier"])
+        .size()
+        .reset_index(name="alertas")
+        .sort_values("alertas", ascending=False)
+    )
+
+
+# ── Pestaña 1 — Sección 1B: PM Selected Plan Missing ──────────────────────────
+
+def section_pm_plan_missing(df: pd.DataFrame) -> pd.DataFrame:
+    # No filtra por pm_selected_plan (buscamos justamente los que no lo tienen)
+    stage_ok  = (
+        df["stage"].str.contains("Settled|Property Leased|Vacante", na=False, case=False)
+        | df["engagement_stage"].str.contains("Settled", na=False, case=False)
+    )
+    status_ok = df["set_up_status"].isin(POST_RENO_STATUSES + PRE_RENO_STATUSES)
+    type_ok   = ~df["engagement_type"].isin(EXCLUDED_ENGAGEMENT_TYPES)
+    base  = add_priority_tier(df[stage_ok & status_ok & type_ok].copy())
+    alert = base[is_empty(base["pm_selected_plan"])]
     return (
         alert.groupby(["investor_relations_name", "priority_tier"])
         .size()
@@ -343,8 +361,24 @@ def section_already_tenanted(df: pd.DataFrame) -> pd.DataFrame:
 # ── Funciones de detalle (drill-down por fila) ─────────────────────────────────
 
 def section_pending_offers_detail(df: pd.DataFrame, ir_name=None, priority_tier=None) -> pd.DataFrame:
-    base = add_priority_tier(base_filter_ir(df))
-    alert = base[is_empty(base["subscription_plan_offer"]) | is_empty(base["pm_selected_plan"])]
+    base  = add_priority_tier(base_filter_ir(df))
+    alert = base[is_empty(base["subscription_plan_offer"])]
+    if ir_name:
+        alert = alert[alert["investor_relations_name"] == ir_name]
+    if priority_tier:
+        alert = alert[alert["priority_tier"] == priority_tier]
+    return _pick_detail(alert)
+
+
+def section_pm_plan_missing_detail(df: pd.DataFrame, ir_name=None, priority_tier=None) -> pd.DataFrame:
+    stage_ok  = (
+        df["stage"].str.contains("Settled|Property Leased|Vacante", na=False, case=False)
+        | df["engagement_stage"].str.contains("Settled", na=False, case=False)
+    )
+    status_ok = df["set_up_status"].isin(POST_RENO_STATUSES + PRE_RENO_STATUSES)
+    type_ok   = ~df["engagement_type"].isin(EXCLUDED_ENGAGEMENT_TYPES)
+    base  = add_priority_tier(df[stage_ok & status_ok & type_ok].copy())
+    alert = base[is_empty(base["pm_selected_plan"])]
     if ir_name:
         alert = alert[alert["investor_relations_name"] == ir_name]
     if priority_tier:

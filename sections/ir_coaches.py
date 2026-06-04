@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils.filters import (
     section_pending_offers, section_pending_offers_detail,
+    section_pm_plan_missing, section_pm_plan_missing_detail,
     section_home_insurance, section_home_insurance_detail,
     section_missing_client_info, section_missing_client_info_detail,
 )
@@ -74,12 +75,13 @@ def render(df: pd.DataFrame, filters: dict):
         df = df[df["priority_tier"].isin(filters["priority"])]
 
     # ════════════════════════════════════════════════════════════════════════
-    # SECCIÓN 1 — Pending Subscription Offers
+    # SECCIÓN 1 — Pending Subscription Offers & PM Selected Plan Missing
     # ════════════════════════════════════════════════════════════════════════
-    with st.expander("📄 Pending Subscription Offers", expanded=True):
-        st.caption(
-            "Falta `subscription_plan_offer` o `pm_selected_plan` — bloquea el envío automático de contratos."
-        )
+    with st.expander("📄 Pending Subscription Offers & PM Selected Plan", expanded=True):
+
+        # ── Sub-A: Pending Subscription Offers ───────────────────────────
+        st.markdown("**Sub-A — Pending Subscription Offers**")
+        st.caption("Falta `subscription_plan_offer` — bloquea el envío automático de contratos.")
         result = section_pending_offers(df)
 
         if result.empty:
@@ -96,7 +98,6 @@ def render(df: pd.DataFrame, filters: dict):
                 ("Pre-Reno (media)",      pre_reno,  "#854F0B"),
                 ("IR usuarios afectados", n_users,   "#185FA5"),
             ])
-            st.markdown("---")
 
             pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
@@ -105,7 +106,38 @@ def render(df: pd.DataFrame, filters: dict):
             )
             if event.selection.rows:
                 _drill_down(pivot, "IR Name", event.selection.rows[0],
-                            section_pending_offers_detail, df, "ir_name", "sec1")
+                            section_pending_offers_detail, df, "ir_name", "sec1a")
+
+        st.markdown("---")
+
+        # ── Sub-B: PM Selected Plan Missing ──────────────────────────────
+        st.markdown("**Sub-B — PM Selected Plan Missing**")
+        st.caption("Falta `pm_selected_plan` — sin plan de gestión asignado.")
+        result_pm = section_pm_plan_missing(df)
+
+        if result_pm.empty:
+            st.success("Sin alertas activas.")
+        else:
+            total_pm     = int(result_pm["alertas"].sum())
+            post_reno_pm = int(result_pm[result_pm["priority_tier"].str.contains("Alta",  na=False)]["alertas"].sum())
+            pre_reno_pm  = int(result_pm[result_pm["priority_tier"].str.contains("Media", na=False)]["alertas"].sum())
+            n_users_pm   = result_pm["investor_relations_name"].nunique()
+
+            _kpi_row([
+                ("Total alertas",         total_pm,     "#A32D2D"),
+                ("Post-Reno (alta)",      post_reno_pm, "#A32D2D"),
+                ("Pre-Reno (media)",      pre_reno_pm,  "#854F0B"),
+                ("IR usuarios afectados", n_users_pm,   "#185FA5"),
+            ])
+
+            pivot_pm = _make_pivot(result_pm, "investor_relations_name", "IR Name")
+            event_pm = st.dataframe(
+                pivot_pm, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-row",
+            )
+            if event_pm.selection.rows:
+                _drill_down(pivot_pm, "IR Name", event_pm.selection.rows[0],
+                            section_pm_plan_missing_detail, df, "ir_name", "sec1b")
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 2 — Home Insurance Tracking
