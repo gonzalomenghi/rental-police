@@ -135,7 +135,21 @@ def section_home_insurance(df: pd.DataFrame) -> pd.DataFrame:
 # ── Pestaña 1 — Sección 3: Missing Client's Info ──────────────────────────────
 
 def section_missing_client_info(df: pd.DataFrame) -> pd.DataFrame:
-    base = add_priority_tier(base_filter_ir(df))
+    plan_ok = df["pm_selected_plan"].isin(SUB_PLANS)
+
+    stage_ok = (
+        df["stage"].isin(["Settled", "Vacant", "Property leased"])
+        | df["engagement_stage"].str.contains("Settled", na=False, case=False)
+    )
+
+    # solo registros con set_up_status reconocido (post-reno o pre-reno)
+    status_ok = df["set_up_status"].isin(POST_RENO_STATUSES + PRE_RENO_STATUSES)
+
+    # engagement_type: NULL pasa el filtro (isin devuelve False para NaN → ~isin True)
+    type_ok = ~df["engagement_type"].isin(EXCLUDED_ENGAGEMENT_TYPES)
+
+    base = add_priority_tier(df[plan_ok & stage_ok & status_ok & type_ok].copy())
+
     cond = (
         is_empty(base["client_full_name"])
         | is_empty(base["client_email"])
