@@ -26,6 +26,22 @@ def _show_detail(detail: pd.DataFrame, label: str):
         st.dataframe(detail, use_container_width=True, hide_index=True)
 
 
+def _make_pivot(result: pd.DataFrame, index_col: str, label_col: str) -> pd.DataFrame:
+    pivot = (
+        result.pivot_table(
+            index=index_col,
+            columns="priority_tier",
+            values="alertas",
+            aggfunc="sum",
+            fill_value=0,
+        )
+        .reset_index()
+        .rename(columns={index_col: label_col})
+    )
+    pivot["Total"] = pivot.select_dtypes("number").sum(axis=1)
+    return pivot.sort_values("Total", ascending=False).reset_index(drop=True)
+
+
 def render(df: pd.DataFrame, filters: dict):
     if filters.get("ir_names"):
         df = df[df["investor_relations_name"].isin(filters["ir_names"])]
@@ -61,20 +77,19 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            table = (
-                result
-                .rename(columns={"investor_relations_name": "IR Name", "priority_tier": "Prioridad", "alertas": "Alertas"})
-                .sort_values(["Alertas", "IR Name"], ascending=[False, True])
-                .reset_index(drop=True)
-            )
+            pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
-                table, use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-row",
+                pivot, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-cell",
             )
-            if event.selection.rows:
-                row = table.iloc[event.selection.rows[0]]
-                detail = section_pending_offers_detail(df, ir_name=row["IR Name"], priority_tier=row["Prioridad"])
-                _show_detail(detail, f"{row['IR Name']} — {row['Prioridad']}")
+            sel = event.selection
+            if sel.rows and sel.columns and sel.columns[0] not in ("IR Name", "Total"):
+                ir_name  = pivot.iloc[sel.rows[0]]["IR Name"]
+                priority = sel.columns[0]
+                _show_detail(
+                    section_pending_offers_detail(df, ir_name=ir_name, priority_tier=priority),
+                    f"{ir_name} — {priority}",
+                )
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 2 — Home Insurance Tracking
@@ -99,20 +114,19 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            table = (
-                result
-                .rename(columns={"investor_relations_name": "IR Name", "priority_tier": "Prioridad", "alertas": "Alertas"})
-                .sort_values(["Alertas", "IR Name"], ascending=[False, True])
-                .reset_index(drop=True)
-            )
+            pivot = _make_pivot(result, "investor_relations_name", "IR Name")
             event = st.dataframe(
-                table, use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-row",
+                pivot, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-cell",
             )
-            if event.selection.rows:
-                row = table.iloc[event.selection.rows[0]]
-                detail = section_home_insurance_detail(df, ir_name=row["IR Name"], priority_tier=row["Prioridad"])
-                _show_detail(detail, f"{row['IR Name']} — {row['Prioridad']}")
+            sel = event.selection
+            if sel.rows and sel.columns and sel.columns[0] not in ("IR Name", "Total"):
+                ir_name  = pivot.iloc[sel.rows[0]]["IR Name"]
+                priority = sel.columns[0]
+                _show_detail(
+                    section_home_insurance_detail(df, ir_name=ir_name, priority_tier=priority),
+                    f"{ir_name} — {priority}",
+                )
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 3 — Missing Client's Info
@@ -135,17 +149,16 @@ def render(df: pd.DataFrame, filters: dict):
             ])
             st.markdown("---")
 
-            table = (
-                result
-                .rename(columns={"priority_tier": "Prioridad", "alertas": "Alertas"})
-                .sort_values(["Alertas", "coach"], ascending=[False, True])
-                .reset_index(drop=True)
-            )
+            pivot = _make_pivot(result, "coach", "Coach")
             event = st.dataframe(
-                table, use_container_width=True, hide_index=True,
-                on_select="rerun", selection_mode="single-row",
+                pivot, use_container_width=True, hide_index=True,
+                on_select="rerun", selection_mode="single-cell",
             )
-            if event.selection.rows:
-                row = table.iloc[event.selection.rows[0]]
-                detail = section_missing_client_info_detail(df, coach=row["coach"], priority_tier=row["Prioridad"])
-                _show_detail(detail, f"{row['coach']} — {row['Prioridad']}")
+            sel = event.selection
+            if sel.rows and sel.columns and sel.columns[0] not in ("Coach", "Total"):
+                coach    = pivot.iloc[sel.rows[0]]["Coach"]
+                priority = sel.columns[0]
+                _show_detail(
+                    section_missing_client_info_detail(df, coach=coach, priority_tier=priority),
+                    f"{coach} — {priority}",
+                )

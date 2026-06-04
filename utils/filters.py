@@ -54,7 +54,7 @@ SUB_FORMALISATION_PLANS = [
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-DETAIL_COLS = ["uniqueid", "transaction_name", "address"]
+DETAIL_COLS = ["uniqueid", "transaction_name", "address", "stage", "set_up_status"]
 
 
 def _pick_detail(df: pd.DataFrame) -> pd.DataFrame:
