@@ -71,12 +71,6 @@ def add_priority_tier(df: pd.DataFrame) -> pd.DataFrame:
 # ── Filtro base para Pestaña 1 (IR & Coaches) ─────────────────────────────────
 
 def base_filter_ir(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Filtro común a las 3 secciones de IR & Coaches:
-    - pm_selected_plan en SUB_PLANS
-    - stage contiene Settled / Property Leased / Vacante  OR  engagement_stage == Settled
-    - engagement_type NO es Value Partner ni Value Hero
-    """
     plan_ok = df["pm_selected_plan"].isin(SUB_PLANS)
 
     stage_ok = (
@@ -84,9 +78,11 @@ def base_filter_ir(df: pd.DataFrame) -> pd.DataFrame:
         | df["engagement_stage"].str.contains("Settled", na=False, case=False)
     )
 
+    status_ok = df["set_up_status"].isin(POST_RENO_STATUSES + PRE_RENO_STATUSES)
+
     type_ok = ~df["engagement_type"].isin(EXCLUDED_ENGAGEMENT_TYPES)
 
-    return df[plan_ok & stage_ok & type_ok].copy()
+    return df[plan_ok & stage_ok & status_ok & type_ok].copy()
 
 
 # ── Pestaña 1 — Sección 1: Pending Subscription Offers ────────────────────────
