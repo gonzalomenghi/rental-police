@@ -429,7 +429,7 @@ def section_subscription_formalisation_detail(df: pd.DataFrame, stage=None, rent
     return _pick_detail(alert)
 
 
-def section_supply_missing_key_data_detail(df: pd.DataFrame, supply_lead=None) -> pd.DataFrame:
+def section_supply_missing_key_data_detail(df: pd.DataFrame, supply_lead=None, gap_type=None) -> pd.DataFrame:
     mask = df["stage"].isin(["Pre-settlement", "Settled", "Property leased", "Vacant"])
     if "country" in df.columns:
         mask &= df["country"] == "Spain"
@@ -438,13 +438,18 @@ def section_supply_missing_key_data_detail(df: pd.DataFrame, supply_lead=None) -
     if "priority" in df.columns:
         mask &= df["priority"].str.contains("High", na=False)
     base = df[mask].copy()
-    alert = base[is_empty(base["suburb_section_name"]) | is_empty(base["area_cluster"])]
+    if gap_type == "Sin suburb section":
+        alert = base[is_empty(base["suburb_section_name"])]
+    elif gap_type == "Sin area cluster":
+        alert = base[is_empty(base["area_cluster"])]
+    else:
+        alert = base[is_empty(base["suburb_section_name"]) | is_empty(base["area_cluster"])]
     if supply_lead:
         alert = alert[alert["supply_lead"] == supply_lead]
     return _pick_detail(alert)
 
 
-def section_already_tenanted_detail(df: pd.DataFrame, supply_lead=None) -> pd.DataFrame:
+def section_already_tenanted_detail(df: pd.DataFrame, supply_lead=None, gap_type=None) -> pd.DataFrame:
     def not_ready(series: pd.Series) -> pd.Series:
         return ~series.str.contains("✅ Ready", na=False)
 
@@ -452,11 +457,18 @@ def section_already_tenanted_detail(df: pd.DataFrame, supply_lead=None) -> pd.Da
         (df["already_tenanted"] == "Yes")
         & (pd.to_datetime(df["contract_date"], errors="coerce") > pd.Timestamp("2025-01-01"))
     ].copy()
-    alert = base[
-        not_ready(base["supply_already_tenanted_tenant"])
-        | not_ready(base["supply_already_tenanted_rental"])
-        | not_ready(base["supply_already_tenanted_insurance"])
-    ]
+    if gap_type == "Missing tenant info":
+        alert = base[not_ready(base["supply_already_tenanted_tenant"])]
+    elif gap_type == "Missing rental docs":
+        alert = base[not_ready(base["supply_already_tenanted_rental"])]
+    elif gap_type == "Missing insurance":
+        alert = base[not_ready(base["supply_already_tenanted_insurance"])]
+    else:
+        alert = base[
+            not_ready(base["supply_already_tenanted_tenant"])
+            | not_ready(base["supply_already_tenanted_rental"])
+            | not_ready(base["supply_already_tenanted_insurance"])
+        ]
     if supply_lead:
         alert = alert[alert["supply_lead"] == supply_lead]
     return _pick_detail(alert)

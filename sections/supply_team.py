@@ -26,6 +26,30 @@ def _show_detail(detail: pd.DataFrame, label: str):
         st.dataframe(detail, use_container_width=True, hide_index=True)
 
 
+def _drill_down(result: pd.DataFrame, row_idx: int, gap_cols: dict,
+                detail_fn, df: pd.DataFrame, lead_col: str, section_key: str):
+    """
+    gap_cols: {label: result_column_name}
+    Muestra radio si hay múltiples tipos con datos, directo si solo uno.
+    """
+    row         = result.iloc[row_idx]
+    supply_lead = row[lead_col]
+    available   = [label for label, col in gap_cols.items() if row[col] > 0]
+    if not available:
+        return
+    if len(available) == 1:
+        gap_type = available[0]
+    else:
+        gap_type = st.radio(
+            "Tipo de dato faltante:",
+            available,
+            horizontal=True,
+            key=f"{section_key}_{supply_lead}",
+        )
+    detail = detail_fn(df, supply_lead=supply_lead, gap_type=gap_type)
+    _show_detail(detail, f"{supply_lead} — {gap_type}")
+
+
 def render(df: pd.DataFrame, filters: dict):
     if filters.get("supply_leads"):
         df = df[df["supply_lead"].isin(filters["supply_leads"])]
@@ -60,8 +84,15 @@ def render(df: pd.DataFrame, filters: dict):
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                supply_lead = result.iloc[event.selection.rows[0]]["supply_lead"]
-                _show_detail(section_supply_missing_key_data_detail(df, supply_lead=supply_lead), supply_lead)
+                _drill_down(
+                    result, event.selection.rows[0],
+                    gap_cols={
+                        "Sin suburb section": "Unitsw_no_Suburb_section_name",
+                        "Sin area cluster":   "Unitsw_no_area_cluster",
+                    },
+                    detail_fn=section_supply_missing_key_data_detail,
+                    df=df, lead_col="supply_lead", section_key="sec1",
+                )
 
     # ════════════════════════════════════════════════════════════════════════
     # SECCIÓN 2 — Already Tenanted Properties
@@ -93,5 +124,13 @@ def render(df: pd.DataFrame, filters: dict):
                 on_select="rerun", selection_mode="single-row",
             )
             if event.selection.rows:
-                supply_lead = result.iloc[event.selection.rows[0]]["supply_lead"]
-                _show_detail(section_already_tenanted_detail(df, supply_lead=supply_lead), supply_lead)
+                _drill_down(
+                    result, event.selection.rows[0],
+                    gap_cols={
+                        "Missing tenant info": "missing_tenant",
+                        "Missing rental docs": "missing_rental",
+                        "Missing insurance":   "missing_insurance",
+                    },
+                    detail_fn=section_already_tenanted_detail,
+                    df=df, lead_col="supply_lead", section_key="sec2",
+                )
