@@ -88,12 +88,8 @@ df = load_data()
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.html(
-        '<div style="font-family:\'Manrope\',sans-serif;margin-bottom:4px">'
-        '<div style="font-size:20px;font-weight:700;color:#FFFFFF">🛡️ Rental Police</div>'
-        '<div style="font-size:12px;color:#A5D7FC;margin-top:2px">Quality control &amp; audit dashboard</div>'
-        '</div>'
-    )
+    st.markdown("## 🛡️ Rental Police")
+    st.markdown("*Quality control & audit dashboard*")
     st.markdown("---")
     st.markdown("### Filtros globales")
 
@@ -139,13 +135,8 @@ filters = {
 # ── Header principal ───────────────────────────────────────────────────────────
 col_title, col_meta = st.columns([3, 1])
 with col_title:
-    st.html(
-        '<div style="font-family:\'Manrope\',sans-serif;margin-bottom:4px">'
-        '<div style="font-size:28px;font-weight:700;color:#26204E">🛡️ Rental Police</div>'
-        '<div style="font-size:13px;color:#666">'
-        'Sistema de control de calidad y auditoría de tareas pendientes</div>'
-        '</div>'
-    )
+    st.title("🛡️ Rental Police")
+    st.caption("Sistema de control de calidad y auditoría de tareas pendientes")
 with col_meta:
     active = sum([
         bool(ir_filter), bool(coach_filter),
