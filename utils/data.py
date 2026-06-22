@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import requests
 
-METABASE_URL = "https://metabase.prophero.com.au/public/question/e3c80ecb-a143-4fda-8f40-680d03ab4dac.csv"
+METABASE_URL = "https://metabase.prophero.app/public/question/e3c80ecb-a143-4fda-8f40-680d03ab4dac.csv"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
