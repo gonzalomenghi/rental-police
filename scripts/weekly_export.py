@@ -137,14 +137,26 @@ def main():
         grand_total,
     ]
 
-    print(f"Connecting to Google Sheets...")
+    # ── Update snapshots.json (used by the Streamlit evolution chart) ─────────
+    from utils.snapshot import load_snapshots, _DATA_DIR, _SNAPSHOT_FILE
+    snapshots = load_snapshots()
+    if wk not in snapshots:
+        snapshots[wk] = kpis
+        _DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _SNAPSHOT_FILE.write_text(json.dumps(snapshots, indent=2), encoding="utf-8")
+        print(f"  snapshots.json updated with week {wk}.")
+    else:
+        print(f"  snapshots.json already has week {wk} — skipped.")
+
+    # ── Push to Google Sheets ──────────────────────────────────────────────────
+    print("Connecting to Google Sheets...")
     client = get_sheets_client()
     sheet  = get_or_create_sheet(client)
 
     # Avoid duplicating the same week if the job runs twice
     existing_weeks = [r[0] for r in sheet.get_all_values()[1:] if r]
     if wk in existing_weeks:
-        print(f"  Week {wk} already exported — skipping.")
+        print(f"  Week {wk} already in Sheets — skipping.")
         return
 
     sheet.append_row(row, value_input_option="USER_ENTERED")
