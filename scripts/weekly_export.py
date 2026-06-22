@@ -34,6 +34,20 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
+# Maps Google Sheets column names → snapshots.json KPI keys
+SHEETS_TO_KPI = {
+    "IR - Pending Offers":         "ir_pending_offers",
+    "IR - PM Plan Missing":        "ir_pm_plan_missing",
+    "IR - Home Insurance":         "ir_home_insurance",
+    "IR - Missing Client Info":    "ir_missing_client",
+    "Rental - PM sin asignar":     "rental_unassigned_pm",
+    "Rental - Ready to Rent":      "rental_ready_to_rent",
+    "Rental - Missing Lease":      "rental_missing_lease",
+    "Rental - Sub. Formalización": "rental_sub_formal",
+    "Supply - Missing Key Data":   "supply_missing_kd",
+    "Supply - Already Tenanted":   "supply_tenanted",
+}
+
 HEADERS = [
     "Semana",
     "Fecha (viernes)",
@@ -137,26 +151,50 @@ def main():
         grand_total,
     ]
 
-    # ── Update snapshots.json (used by the Streamlit evolution chart) ─────────
+    # ── Sync Google Sheets → snapshots.json (backfill historical weeks) ────────
     from utils.snapshot import load_snapshots, _DATA_DIR, _SNAPSHOT_FILE
-    snapshots = load_snapshots()
-    if wk not in snapshots:
-        snapshots[wk] = kpis
-        _DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _SNAPSHOT_FILE.write_text(json.dumps(snapshots, indent=2), encoding="utf-8")
-        print(f"  snapshots.json updated with week {wk}.")
-    else:
-        print(f"  snapshots.json already has week {wk} — skipped.")
-
-    # ── Push to Google Sheets ──────────────────────────────────────────────────
     print("Connecting to Google Sheets...")
     client = get_sheets_client()
     sheet  = get_or_create_sheet(client)
 
-    # Avoid duplicating the same week if the job runs twice
-    existing_weeks = [r[0] for r in sheet.get_all_values()[1:] if r]
+    all_rows    = sheet.get_all_values()
+    sheets_hdrs = all_rows[0] if all_rows else []
+    data_rows   = all_rows[1:] if len(all_rows) > 1 else []
+
+    snapshots   = load_snapshots()
+    backfilled  = 0
+    for r in data_rows:
+        if not r:
+            continue
+        row_week = r[0]
+        if row_week and row_week not in snapshots:
+            row_dict = dict(zip(sheets_hdrs, r))
+            kpi_entry = {}
+            for col, kpi_key in SHEETS_TO_KPI.items():
+                try:
+                    kpi_entry[kpi_key] = int(row_dict.get(col, 0) or 0)
+                except (ValueError, TypeError):
+                    kpi_entry[kpi_key] = 0
+            snapshots[row_week] = kpi_entry
+            backfilled += 1
+            print(f"  Backfilled {row_week} from Sheets into snapshots.json.")
+
+    # ── Update snapshots.json with current week ────────────────────────────────
+    if wk not in snapshots:
+        snapshots[wk] = kpis
+        print(f"  snapshots.json updated with week {wk}.")
+    else:
+        print(f"  snapshots.json already has week {wk} — skipped.")
+
+    if backfilled or wk not in {r[0] for r in data_rows if r}:
+        _DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _SNAPSHOT_FILE.write_text(json.dumps(snapshots, indent=2), encoding="utf-8")
+
+    # ── Push current week to Google Sheets ────────────────────────────────────
+    existing_weeks = [r[0] for r in data_rows if r]
     if wk in existing_weeks:
         print(f"  Week {wk} already in Sheets — skipping.")
+        print("Done.")
         return
 
     sheet.append_row(row, value_input_option="USER_ENTERED")
