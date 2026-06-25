@@ -19,8 +19,13 @@ rental_police/
 ├── requirements.txt                # Dependencias
 ├── .streamlit/
 │   └── config.toml                 # Tema visual (Ocean Blue / Space Blue / Sand)
+├── .github/
+│   └── workflows/
+│       └── weekly_sheets_export.yml  # GitHub Action: exporta KPIs a Sheets cada viernes
 ├── data/
-│   └── snapshots.json              # Historial semanal de KPIs (generado automáticamente)
+│   └── snapshots.json              # Historial semanal de KPIs (commitado automáticamente)
+├── scripts/
+│   └── weekly_export.py            # Script standalone: calcula KPIs y actualiza Sheets + snapshots.json
 ├── sections/
 │   ├── summary.py                  # Pestaña 0: Dashboard global con gráficos y WoW
 │   ├── ir_coaches.py               # Pestaña 1: IR & Coaches Team
@@ -88,7 +93,38 @@ Al cargar el dashboard, `utils/snapshot.py` guarda automáticamente los KPIs de 
 - Delta ↑/↓ en cada KPI card comparando con la semana anterior
 - Gráfico de líneas con la evolución histórica por área
 
-> **Nota en Streamlit Community Cloud:** el archivo `snapshots.json` persiste dentro del mismo deployment. Si el app se redeploya (nuevo push a main), el historial se reinicia salvo que el archivo sea commiteado al repositorio.
+El archivo `data/snapshots.json` se commitea automáticamente al repositorio cada viernes vía GitHub Actions, por lo que el historial persiste entre redeploys.
+
+---
+
+## Integración con Google Sheets
+
+Un GitHub Action exporta los KPIs semanales a una hoja de cálculo de Google Sheets y hace commit de `snapshots.json` al repositorio.
+
+### Trigger
+
+- **Automático:** todos los viernes a las 17:00 UTC (19:00 CEST / 18:00 CET)
+- **Manual:** desde la pestaña *Actions* del repositorio en GitHub → *Run workflow*
+
+### Flujo
+
+1. `scripts/weekly_export.py` se ejecuta en un runner de Ubuntu con Python 3.12
+2. Descarga los datos desde Metabase y calcula los KPIs usando la misma lógica que el dashboard
+3. Lee `snapshots.json` y backfilla semanas históricas que estén en Sheets pero no en el JSON
+4. Añade la fila de la semana actual a la pestaña **KPI Semanal** de Google Sheets
+5. El Action hace commit del `snapshots.json` actualizado al repositorio
+
+### Configuración requerida (secret de GitHub)
+
+| Secret | Descripción |
+|---|---|
+| `GOOGLE_SHEETS_CREDENTIALS` | JSON completo de la Service Account de Google con acceso a la hoja |
+
+La hoja de destino es:
+```
+Spreadsheet ID: 1et1Tog8Io65JTc_t-fKKo73Bm2CnduyCtLGwcZjc6Yg
+Pestaña:        KPI Semanal
+```
 
 ---
 
@@ -125,7 +161,7 @@ No es necesario configurar secrets. La URL quedará disponible en `https://tu-ap
 Los datos se obtienen directamente desde Metabase vía CSV público, definido en `utils/data.py`:
 
 ```python
-METABASE_URL = "https://metabase.prophero.com.au/public/question/e3c80ecb-a143-4fda-8f40-680d03ab4dac.csv"
+METABASE_URL = "https://metabase.prophero.app/public/question/e3c80ecb-a143-4fda-8f40-680d03ab4dac.csv"
 ```
 
 El cache se refresca automáticamente cada 5 minutos. El botón **Refrescar datos** del sidebar fuerza una actualización inmediata.
