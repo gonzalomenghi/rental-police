@@ -1,0 +1,110 @@
+{
+  "2026-W25": {
+    "ir_pending_offers": 183,
+    "ir_pm_plan_missing": 43,
+    "ir_home_insurance": 522,
+    "ir_missing_client": 120,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 42,
+    "rental_missing_lease": 20,
+    "rental_sub_formal": 29,
+    "supply_missing_kd": 40,
+    "supply_tenanted": 16
+  },
+  "2026-W26": {
+    "ir_pending_offers": 189,
+    "ir_pm_plan_missing": 43,
+    "ir_home_insurance": 528,
+    "ir_missing_client": 119,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 56,
+    "rental_missing_lease": 22,
+    "rental_sub_formal": 51,
+    "supply_missing_kd": 18,
+    "supply_tenanted": 35
+  },
+  "2026-W27": {
+    "ir_pending_offers": 186,
+    "ir_pm_plan_missing": 43,
+    "ir_home_insurance": 484,
+    "ir_missing_client": 118,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 46,
+    "rental_missing_lease": 27,
+    "rental_sub_formal": 64,
+    "supply_missing_kd": 18,
+    "supply_tenanted": 52
+  },
+  "2026-W28": {
+    "ir_pending_offers": 189,
+    "ir_pm_plan_missing": 42,
+    "ir_home_insurance": 451,
+    "ir_missing_client": 114,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 53,
+    "rental_missing_lease": 42,
+    "rental_sub_formal": 62,
+    "supply_missing_kd": 18,
+    "supply_tenanted": 16
+  },
+  "2026-W29": {
+    "ir_pending_offers": 152,
+    "ir_pm_plan_missing": 38,
+    "ir_home_insurance": 432,
+    "ir_missing_client": 117,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 45,
+    "rental_missing_lease": 34,
+    "rental_sub_formal": 51,
+    "supply_missing_kd": 0,
+    "supply_tenanted": 17
+  },
+  "2026-W30": {
+    "ir_pending_offers": 144,
+    "ir_pm_plan_missing": 38,
+    "ir_home_insurance": 391,
+    "ir_missing_client": 115,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 40,
+    "rental_missing_lease": 17,
+    "rental_sub_formal": 39,
+    "supply_missing_kd": 0,
+    "supply_tenanted": 17
+  },
+  "2026-W33": {
+    "ir_pending_offers": 109,
+    "ir_pm_plan_missing": 37,
+    "ir_home_insurance": 323,
+    "ir_missing_client": 111,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 36,
+    "rental_missing_lease": 21,
+    "rental_sub_formal": 33,
+    "supply_missing_kd": 0,
+    "supply_tenanted": 15
+  },
+  "2026-W34": {
+    "ir_pending_offers": 102,
+    "ir_pm_plan_missing": 37,
+    "ir_home_insurance": 323,
+    "ir_missing_client": 110,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 41,
+    "rental_missing_lease": 27,
+    "rental_sub_formal": 35,
+    "supply_missing_kd": 2,
+    "supply_tenanted": 15
+  },
+  "2026-W35": {
+    "ir_pending_offers": 66,
+    "ir_pm_plan_missing": 34,
+    "ir_home_insurance": 306,
+    "ir_missing_client": 106,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 39,
+    "rental_missing_lease": 20,
+    "rental_sub_formal": 30,
+    "supply_missing_kd": 6,
+    "supply_tenanted": 15
+  }
+}
