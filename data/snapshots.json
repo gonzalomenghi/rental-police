@@ -130,5 +130,17 @@
     "rental_sub_formal": 31,
     "supply_missing_kd": 7,
     "supply_tenanted": 14
+  },
+  "2026-W38": {
+    "ir_pending_offers": 36,
+    "ir_pm_plan_missing": 31,
+    "ir_home_insurance": 265,
+    "ir_missing_client": 86,
+    "rental_unassigned_pm": 0,
+    "rental_ready_to_rent": 36,
+    "rental_missing_lease": 17,
+    "rental_sub_formal": 31,
+    "supply_missing_kd": 7,
+    "supply_tenanted": 14
   }
 }
